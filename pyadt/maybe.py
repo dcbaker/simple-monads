@@ -54,6 +54,26 @@ class Maybe(Generic[T]):
         """
         raise NotImplementedError()
 
+    def map_or(self, cb: Callable[[T], U], fallback: U) -> Maybe[U]:
+        """Transform the held value using the callback, or use the fallback
+        value.
+
+        :param cb: A callback which will transform Something[T] into Something[U]
+        :param fallback: A value to use for Nothing
+        :return: A Something containing the transformation or the fallback value
+        """
+        raise NotImplementedError()
+
+    def map_or_else(self, cb: Callable[[T], U], fallback: Callable[[], U]) -> Maybe[U]:
+        """Transform the held value using the callback, or use the fallback
+        value.
+
+        :param cb: A callback which will transform Something[T] into Something[U]
+        :param fallback: callable returning a value U
+        :return: A Something containing the transformation or the fallback value
+        """
+        raise NotImplementedError()
+
     def get(self, fallback: T | None = None) -> T:
         """Get the held value.
 
@@ -86,12 +106,17 @@ class Something(Maybe[T]):
     def map(self, cb: Callable[[T], U]) -> Maybe[U]:
         return Something(cb(self._held))
 
+    def map_or(self, cb: Callable[[T], U], fallback: U) -> Maybe[U]:
+        return Something(cb(self._held))
+
+    def map_or_else(self, cb: Callable[[T], U], fallback: Callable[[], U]) -> Maybe[U]:
+        return Something(cb(self._held))
+
     def get(self, fallback: T | None = None) -> T:
         return self._held
 
     def unwrap(self, msg: str | None = None) -> T:
         return self._held
-
 
 
 @dataclass(slots=True, frozen=True)
@@ -107,6 +132,12 @@ class Nothing(Maybe[T]):
 
     def map(self, cb: Callable[[T], U]) -> Maybe[U]:
         return Nothing()
+
+    def map_or(self, cb: Callable[[T], U], fallback: U) -> Maybe[U]:
+        return Something(fallback)
+
+    def map_or_else(self, cb: Callable[[T], U], fallback: Callable[[], U]) -> Maybe[U]:
+        return Something(fallback())
 
     def get(self, fallback: T | None = None) -> T:
         if fallback is None:

@@ -20,6 +20,22 @@ class TestMaybe:
             s = Nothing().map(str)
             assert s == Nothing()
 
+    class TestMapOr:
+
+        def test_something(self) -> None:
+            assert Something(1).map_or(str, '2') == Something('1')
+
+        def test_something(self) -> None:
+            assert Nothing().map_or(str, '2') == Something('2')
+
+    class TestMapOrElse:
+
+        def test_something(self) -> None:
+            assert Something(1).map_or_else(str, lambda: '2') == Something('1')
+
+        def test_something(self) -> None:
+            assert Nothing().map_or_else(str, lambda: '2') == Something('2')
+
     class TestGet:
 
         def test_something(self) -> None:

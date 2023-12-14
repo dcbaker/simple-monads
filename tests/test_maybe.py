@@ -2,6 +2,7 @@
 # Copyright © 2023 Dylan Baker
 
 from __future__ import annotations
+from typing import cast
 
 import pytest
 
@@ -25,7 +26,7 @@ class TestMaybe:
         def test_something(self) -> None:
             assert Something(1).map_or(str, '2') == Something('1')
 
-        def test_something(self) -> None:
+        def test_nothing(self) -> None:
             assert Nothing().map_or(str, '2') == Something('2')
 
     class TestMapOrElse:
@@ -33,7 +34,7 @@ class TestMaybe:
         def test_something(self) -> None:
             assert Something(1).map_or_else(str, lambda: '2') == Something('1')
 
-        def test_something(self) -> None:
+        def test_nothing(self) -> None:
             assert Nothing().map_or_else(str, lambda: '2') == Something('2')
 
     class TestGet:
@@ -45,7 +46,7 @@ class TestMaybe:
             assert Nothing().get() is None
 
         def test_empty_with_fallback(self) -> None:
-            assert Nothing().get('foo') == 'foo'
+            assert cast(Nothing[str], Nothing()).get('foo') == 'foo'
 
     class TestIsSomething:
 

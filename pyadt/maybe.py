@@ -91,6 +91,23 @@ class Maybe(Generic[T]):
         raise NotImplementedError()
 
     def unwrap(self, msg: str | None = None) -> T:
+        """Get the held value or throw an Exception.
+
+        :param msg: The error message, otherwise a default is used
+        :raises EmptyMaybeError: If this is Nothing
+        :return: The held value
+        """
+        raise NotImplementedError()
+
+    def unwrap_or(self, fallback: T) -> T:
+        """Get the value or a fallback value.
+
+        Unlike get() doesn't provide a fallback of None, which narrows type
+        checking.
+
+        :param fallback: The fallback to return
+        :return: The held value or the fallback
+        """
         raise NotImplementedError()
 
 
@@ -122,6 +139,9 @@ class Something(Maybe[T]):
     def unwrap(self, msg: str | None = None) -> T:
         return self._held
 
+    def unwrap_or(self, fallback: T) -> T:
+        return self._held
+
 
 @dataclass(slots=True, frozen=True)
 class Nothing(Maybe[T]):
@@ -150,6 +170,9 @@ class Nothing(Maybe[T]):
         if msg is None:
             msg = 'Attempted to unwrap Nothing'
         raise EmptyMaybeError(msg)
+
+    def unwrap_or(self, fallback: T) -> T:
+        return fallback
 
 
 def maybe(result: T | None) -> Maybe[T]:

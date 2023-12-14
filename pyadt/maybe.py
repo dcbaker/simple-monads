@@ -110,6 +110,14 @@ class Maybe(Generic[T]):
         """
         raise NotImplementedError()
 
+    def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
+        """Get the value or call the fallback to get a value
+
+        :param fallback: A callable returning a type T
+        :return: The held value or the fallback
+        """
+        raise NotImplementedError()
+
 
 @dataclass(slots=True, frozen=True)
 class Something(Maybe[T]):
@@ -140,6 +148,9 @@ class Something(Maybe[T]):
         return self._held
 
     def unwrap_or(self, fallback: T) -> T:
+        return self._held
+
+    def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
         return self._held
 
 
@@ -173,6 +184,9 @@ class Nothing(Maybe[T]):
 
     def unwrap_or(self, fallback: T) -> T:
         return fallback
+
+    def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
+        return fallback()
 
 
 def maybe(result: T | None) -> Maybe[T]:

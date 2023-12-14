@@ -78,6 +78,22 @@ class TestMaybe:
             with pytest.raises(EmptyMaybeError, match=msg):
                 assert Nothing().unwrap(msg)
 
+    class TestUnwrapOr:
+
+        def test_something(self) -> None:
+            assert Something('foo').unwrap_or('bar') == 'foo'
+
+        def test_nothing(self) -> None:
+            assert cast('Nothing[str]', Nothing()).unwrap_or('bar') == 'bar'
+
+    class TestUnwrapOrElse:
+
+        def test_something(self) -> None:
+            assert Something('foo').unwrap_or_else(lambda: 'bar') == 'foo'
+
+        def test_nothing(self) -> None:
+            assert cast('Nothing[str]', Nothing()).unwrap_or_else(lambda: 'bar') == 'bar'
+
     class TestMaybe:
 
         def test_something(self) -> None:

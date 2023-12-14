@@ -94,13 +94,24 @@ class TestMaybe:
         def test_nothing(self) -> None:
             assert cast('Nothing[str]', Nothing()).unwrap_or_else(lambda: 'bar') == 'bar'
 
-    class TestMaybe:
+    class TestBool:
 
         def test_something(self) -> None:
-            assert maybe('foo') == Something('foo')
+            assert Something('foo')
 
         def test_nothing(self) -> None:
-            assert maybe(None) == Nothing()
+            assert not Nothing()
+
+
+
+class TestMaybeFunction:
+
+    def test_something(self) -> None:
+        assert maybe('foo') == Something('foo')
+
+    def test_nothing(self) -> None:
+        assert maybe(None) == Nothing()
+
 
 class TestMaybeWrap:
 

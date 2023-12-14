@@ -124,6 +124,9 @@ class Something(Maybe[T]):
 
     _held: T
 
+    def __bool__(self) -> bool:
+        return True
+
     @staticmethod
     def is_something() -> bool:
         return True
@@ -156,6 +159,9 @@ class Something(Maybe[T]):
 
 @dataclass(slots=True, frozen=True)
 class Nothing(Maybe[T]):
+
+    def __bool__(self) -> bool:
+        return False
 
     @staticmethod
     def is_something() -> bool:

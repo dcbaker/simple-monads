@@ -4,10 +4,12 @@
 """An implementation of an Option type."""
 
 from __future__ import annotations
-from os import stat
+from functools import wraps
 from typing import *
 from dataclasses import dataclass
 
+P = ParamSpec('P')
+R = TypeVar('R')
 T = TypeVar('T')
 U = TypeVar('U')
 
@@ -16,6 +18,9 @@ __all__ = [
     'Maybe',
     'Something',
     'Nothing',
+    'maybe',
+    'maybe_wrap',
+    'maybe_unwrap',
 ]
 
 
@@ -74,14 +79,13 @@ class Maybe(Generic[T]):
         """
         raise NotImplementedError()
 
-    def get(self, fallback: T | None = None) -> T:
+    def get(self, fallback: T | None = None) -> T | None:
         """Get the held value.
 
         Works like Python's standard get() interface, including throwing a
         ValueError if this is Nothing.
 
         :param fallback: A value to use if this is Nothing
-        :raises ValueError: If this is nothing, and no fallback is provided
         :return: The value or fallback
         """
         raise NotImplementedError()
@@ -112,7 +116,7 @@ class Something(Maybe[T]):
     def map_or_else(self, cb: Callable[[T], U], fallback: Callable[[], U]) -> Maybe[U]:
         return Something(cb(self._held))
 
-    def get(self, fallback: T | None = None) -> T:
+    def get(self, fallback: T | None = None) -> T | None:
         return self._held
 
     def unwrap(self, msg: str | None = None) -> T:
@@ -139,12 +143,55 @@ class Nothing(Maybe[T]):
     def map_or_else(self, cb: Callable[[T], U], fallback: Callable[[], U]) -> Maybe[U]:
         return Something(fallback())
 
-    def get(self, fallback: T | None = None) -> T:
-        if fallback is None:
-            raise ValueError('Attempted to get the value from Nothing with no fallback')
+    def get(self, fallback: T | None = None) -> T | None:
         return fallback
 
     def unwrap(self, msg: str | None = None) -> T:
         if msg is None:
             msg = 'Attempted to unwrap Nothing'
         raise EmptyMaybeError(msg)
+
+
+def maybe(result: T | None) -> Maybe[T]:
+    """Convenience function to convert T | None into Maybe[T].
+
+    This can convert python code using the standard T | None Optional.
+    This works correctly only when None is not a valid member of T
+
+    :param result: A None or T type to wrap
+    :return: Nothing if result is None, else Something[T](result)
+    """
+    if result is None:
+        return Nothing()
+    return Something(result)
+
+
+def maybe_wrap(f: Callable[P, R]) -> Callable[P, Maybe[R]]:
+
+    """Decorator (or wrapper) for common python code.
+
+    Converts code returning T | None to return Maybe[T]
+    """
+
+    @wraps(f)
+    def inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
+        return maybe(f(*args, **kwargs))
+
+    return inner
+
+
+def maybe_unwrap(f: Callable[P, Maybe[R]]) -> Callable[P, R | None]:
+
+    """Decorator (or wrapper) to convert back to common Python.
+
+    Converts code returning Maybe[T] to T | None.
+
+    This is meant to ease transitioning a codebase to using pyadt, but allowing
+    code to internally use Maybe, but return common Python Optional
+    """
+
+    @wraps(f)
+    def inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
+        return f(*args, **kwargs).get()
+
+    return inner

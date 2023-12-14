@@ -42,8 +42,7 @@ class TestMaybe:
             assert Something(1).get() == 1
 
         def test_empty(self) -> None:
-            with pytest.raises(ValueError):
-                Nothing().get()
+            assert Nothing().get() is None
 
         def test_empty_with_fallback(self) -> None:
             assert Nothing().get('foo') == 'foo'
@@ -77,3 +76,44 @@ class TestMaybe:
             msg = 'test message'
             with pytest.raises(EmptyMaybeError, match=msg):
                 assert Nothing().unwrap(msg)
+
+    class TestMaybe:
+
+        def test_something(self) -> None:
+            assert maybe('foo') == Something('foo')
+
+        def test_nothing(self) -> None:
+            assert maybe(None) == Nothing()
+
+class TestMaybeWrap:
+
+    def test_something(self) -> None:
+        @maybe_wrap
+        def helper() -> str:
+            return 'foo'
+
+        assert helper() == Something('foo')
+
+    def test_nothing(self) -> None:
+        @maybe_wrap
+        def helper() -> None:
+            return None
+
+        assert helper() == Nothing()
+
+
+class TestMaybeUnwrap:
+
+    def test_something(self) -> None:
+        @maybe_unwrap
+        def helper() -> Maybe[str]:
+            return Something('foo')
+
+        assert helper() == 'foo'
+
+    def test_nothing(self) -> None:
+        @maybe_unwrap
+        def helper() -> Maybe[str]:
+            return Nothing()
+
+        assert helper() is None

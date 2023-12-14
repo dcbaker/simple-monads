@@ -118,6 +118,24 @@ class Maybe(Generic[T]):
         """
         raise NotImplementedError()
 
+    def and_then(self, cb: Callable[[T], Maybe[U]]) -> Maybe[U]:
+        """Run a callback on the value if it is Something
+
+        :param cb: A callback to run on the held value or Something()
+        :return: A Maybe[U] with the result of the callback or nothing
+        """
+        raise NotImplementedError()
+
+    def or_else(self, fallback: Callable[[], Maybe[T]]) -> Maybe[T]:
+        """Run a callback to get a value if this is Nothing or return self.
+
+        :param fallback: A callback to run if this is Nothing returning a
+            Maybe[T]
+        :return: A Maybe[T], which is self unchanged if this Something,
+            otherwise the result of fallback
+        """
+        raise NotImplementedError()
+
 
 @dataclass(slots=True, frozen=True)
 class Something(Maybe[T]):
@@ -156,6 +174,12 @@ class Something(Maybe[T]):
     def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
         return self._held
 
+    def and_then(self, cb: Callable[[T], Maybe[U]]) -> Maybe[U]:
+        return cb(self._held)
+
+    def or_else(self, fallback: Callable[[], Maybe[T]]) -> Maybe[T]:
+        return self
+
 
 @dataclass(slots=True, frozen=True)
 class Nothing(Maybe[T]):
@@ -192,6 +216,12 @@ class Nothing(Maybe[T]):
         return fallback
 
     def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
+        return fallback()
+
+    def and_then(self, cb: Callable[[T], Maybe[U]]) -> Maybe[U]:
+        return Nothing()
+
+    def or_else(self, fallback: Callable[[], Maybe[T]]) -> Maybe[T]:
         return fallback()
 
 

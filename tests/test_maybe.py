@@ -102,6 +102,32 @@ class TestMaybe:
         def test_nothing(self) -> None:
             assert not Nothing()
 
+    class TestAndThen:
+
+        @staticmethod
+        @maybe_wrap
+        def to_int(v: str) -> int | None:
+            try:
+                return int(v)
+            except ValueError:
+                return None
+
+        def test_something_invalid(self) -> None:
+            assert Something('foo').and_then(self.to_int) == Nothing()
+
+        def test_something_valid(self) -> None:
+            assert Something('1').and_then(self.to_int) == Something(1)
+
+        def test_nothing(self) -> None:
+            assert Nothing().and_then(self.to_int) == Nothing()
+
+    class TestOrElse:
+
+        def test_something(self) -> None:
+            Something('foo').or_else(lambda: maybe('bar')) == Something('foo')
+
+        def test_nothing(self) -> None:
+            cast('Nothing[str]', Nothing()).or_else(lambda: maybe('bar')) == Something('bar')
 
 
 class TestMaybeFunction:

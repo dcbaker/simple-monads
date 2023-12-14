@@ -24,3 +24,12 @@ class TestResult:
 
         def test_success(self) -> None:
             assert Success('foo').unwrap() == 'foo'
+
+    class TestUnwrapOr:
+
+        def test_error(self) -> None:
+            e: Result[str, Exception] = Error(Exception('foo'))
+            assert e.unwrap_or('bar') == 'bar'
+
+        def test_success(self) -> None:
+            assert Success('foo').unwrap_or('bar') == 'foo'

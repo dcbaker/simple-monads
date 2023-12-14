@@ -33,3 +33,12 @@ class TestResult:
 
         def test_success(self) -> None:
             assert Success('foo').unwrap_or('bar') == 'foo'
+
+    class TestUnwrapOrElse:
+
+        def test_error(self) -> None:
+            e: Result[str, Exception] = Error(Exception('foo'))
+            assert e.unwrap_or_else(lambda: 'bar') == 'bar'
+
+        def test_success(self) -> None:
+            assert Success('foo').unwrap_or_else(lambda: 'bar') == 'foo'

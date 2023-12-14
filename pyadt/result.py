@@ -43,6 +43,14 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
+    def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
+        """Return the held value or the result of the fallback.
+
+        :param fallback: A callable to generate a result if this in Error
+        :return: Either the held value or the fallback value
+        """
+        raise NotImplementedError()
+
 
 @dataclass(slots=True, frozen=True)
 class Error(Result[T, E]):
@@ -55,6 +63,9 @@ class Error(Result[T, E]):
     def unwrap_or(self, fallback: T) -> T:
         return fallback
 
+    def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
+        return fallback()
+
 
 @dataclass(slots=True, frozen=True)
 class Success(Result[T, E]):
@@ -65,4 +76,7 @@ class Success(Result[T, E]):
         return self._held
 
     def unwrap_or(self, fallback: T) -> T:
+        return self._held
+
+    def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
         return self._held

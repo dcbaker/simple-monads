@@ -7,6 +7,9 @@ from __future__ import annotations
 from typing import *
 from dataclasses import dataclass
 
+if TYPE_CHECKING:
+    from .maybe import Maybe
+
 T = TypeVar('T')
 U = TypeVar('U')
 E = TypeVar('E')
@@ -127,6 +130,24 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
+    def err(self) -> Maybe[E]:
+        """Transform an Result[T, E] into a Maybe[E]
+
+        A Success will be mapped to Nothing[E], while and Error becomes Something[E]
+
+        :return: A Maybe with the error
+        """
+        raise NotImplementedError()
+
+    def ok(self) -> Maybe[T]:
+        """Transform an Result[T, E] into a Maybe[T]
+
+        A Success will be mapped to Something[T], while and Error becomes Nothing[T]
+
+        :return: A Maybe with the held value
+        """
+        raise NotImplementedError()
+
 
 @dataclass(slots=True, frozen=True)
 class Error(Result[T, E]):
@@ -179,6 +200,14 @@ class Error(Result[T, E]):
     def or_else(self, cb: Callable[[E], Result[T, F]]) -> Result[T, F]:
         return cb(self._held)
 
+    def err(self) -> Maybe[E]:
+        from .maybe import Something
+        return Something(self._held)
+
+    def ok(self) -> Maybe[T]:
+        from .maybe import Nothing
+        return Nothing()
+
 
 @dataclass(slots=True, frozen=True)
 class Success(Result[T, E]):
@@ -226,3 +255,11 @@ class Success(Result[T, E]):
 
     def or_else(self, cb: Callable[[E], Result[T, F]]) -> Result[T, F]:
         return Success(self._held)
+
+    def err(self) -> Maybe[E]:
+        from .maybe import Nothing
+        return Nothing()
+
+    def ok(self) -> Maybe[T]:
+        from .maybe import Something
+        return Something(self._held)

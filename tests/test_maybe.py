@@ -129,6 +129,21 @@ class TestMaybe:
         def test_nothing(self) -> None:
             cast('Nothing[str]', Nothing()).or_else(lambda: maybe('bar')) == Something('bar')
 
+    class TestOkOr:
+
+        def test_something(self) -> None:
+            Something('foo').ok_or('bar').unwrap() == 'foo'
+
+        def test_nothing(self) -> None:
+            cast('Nothing[str]', Nothing()).ok_or('bar').unwrap_err() == 'bar'
+
+    class TestOkOrElse:
+
+        def test_something(self) -> None:
+            Something('foo').ok_or_else(lambda: 'bar').unwrap() == 'foo'
+
+        def test_nothing(self) -> None:
+            cast('Nothing[str]', Nothing()).ok_or_else(lambda: 'bar').unwrap_err() == 'bar'
 
 class TestMaybeFunction:
 

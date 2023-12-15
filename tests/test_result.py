@@ -152,3 +152,23 @@ class TestResult:
         def test_success(self) -> None:
             s: Success[str, str] = Success('1')
             assert s.or_else(self._cb) == s
+
+    class TestErr:
+
+        def test_error(self) -> None:
+            e: Result[str, int] = Error(4)
+            assert e.err().unwrap() == 4
+
+        def test_success(self) -> None:
+            s: Result[str, int] = Success(4)
+            assert s.err().is_nothing()
+
+    class TestOk:
+
+        def test_error(self) -> None:
+            e: Result[str, int] = Error(4)
+            assert e.ok().is_nothing()
+
+        def test_success(self) -> None:
+            s: Result[str, int] = Success(4)
+            assert s.ok().unwrap() == 4

@@ -8,8 +8,12 @@ from functools import wraps
 from typing import *
 from dataclasses import dataclass
 
+if TYPE_CHECKING:
+    from .result import Result
+
 P = ParamSpec('P')
 R = TypeVar('R')
+E = TypeVar('E')
 T = TypeVar('T')
 U = TypeVar('U')
 
@@ -136,6 +140,28 @@ class Maybe(Generic[T]):
         """
         raise NotImplementedError()
 
+    def ok_or(self, err: E) -> Result[T, E]:
+        """Convert this Option to a Result.
+
+        If the Option is Something, that will be placed in the Success value,
+        otherwise the Error value of E will be used.
+
+        :param err: An error if this is Nothing
+        :return: A result with the held value as a Success or an Error
+        """
+        raise NotImplementedError()
+
+    def ok_or_else(self, err: Callable[[], E]) -> Result[T, E]:
+        """Convert this Option to a Result.
+
+        If the Option is Something, that will be placed in the Success value,
+        otherwise the Error value of E will be used.
+
+        :param err: An callable returning a type E
+        :return: A result with the held value as a Success or an Error
+        """
+        raise NotImplementedError()
+
 
 @dataclass(slots=True, frozen=True)
 class Something(Maybe[T]):
@@ -180,6 +206,14 @@ class Something(Maybe[T]):
     def or_else(self, fallback: Callable[[], Maybe[T]]) -> Maybe[T]:
         return self
 
+    def ok_or(self, err: E) -> Result[T, E]:
+        from .result import Success
+        return Success(self._held)
+
+    def ok_or_else(self, err: Callable[[], E]) -> Result[T, E]:
+        from .result import Success
+        return Success(self._held)
+
 
 @dataclass(slots=True, frozen=True)
 class Nothing(Maybe[T]):
@@ -223,6 +257,14 @@ class Nothing(Maybe[T]):
 
     def or_else(self, fallback: Callable[[], Maybe[T]]) -> Maybe[T]:
         return fallback()
+
+    def ok_or(self, err: E) -> Result[T, E]:
+        from .result import Error
+        return  Error(err)
+
+    def ok_or_else(self, err: Callable[[], E]) -> Result[T, E]:
+        from .result import Error
+        return  Error(err())
 
 
 def maybe(result: T | None) -> Maybe[T]:

@@ -171,6 +171,28 @@ class TestResult:
             s: Result[int, int] = Success(4)
             assert s.ok().unwrap() == 4
 
+    class TestMatch:
+
+        def test_error(self) -> None:
+            e: Result[str, int] = Error(4)
+            match e:
+                case Success(4):
+                    pytest.fail()
+                case Error(4):
+                    assert True
+                case _:
+                    pytest.fail()
+
+        def test_success(self) -> None:
+            s: Result[int, int] = Success(4)
+            match s:
+                case Error(4):
+                    pytest.fail()
+                case Success(4):
+                    assert True
+                case _:
+                    pytest.fail()
+
 
 class TestWrapResult:
 

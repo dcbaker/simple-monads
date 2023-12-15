@@ -145,6 +145,32 @@ class TestMaybe:
         def test_nothing(self) -> None:
             cast('Nothing[str]', Nothing()).ok_or_else(lambda: 'bar').unwrap_err() == 'bar'
 
+    class TestMatch:
+
+        def test_something(self) -> None:
+            s = Something('foo')
+            match s:
+                case Something('bar'):
+                    pytest.fail()
+                case Something('foo'):
+                    assert True
+                case Nothing():
+                    pytest.fail()
+                case _:
+                    pytest.fail()
+
+        def test_nothing(self) -> None:
+            s: Nothing[str] = Nothing()
+            match s:
+                case Something('bar'):
+                    pytest.fail()
+                case Something('foo'):
+                    pytest.fail()
+                case Nothing():
+                    assert True
+                case _:
+                    pytest.fail()
+
 class TestMaybeFunction:
 
     def test_something(self) -> None:

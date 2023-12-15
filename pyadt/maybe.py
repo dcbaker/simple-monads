@@ -20,11 +20,11 @@ U = TypeVar('U')
 __all__ = [
     'EmptyMaybeError',
     'Maybe',
-    'Something',
     'Nothing',
+    'Something',
     'maybe',
-    'maybe_wrap',
-    'maybe_unwrap',
+    'unwrap_maybe',
+    'wrap_maybe',
 ]
 
 
@@ -281,7 +281,7 @@ def maybe(result: T | None) -> Maybe[T]:
     return Something(result)
 
 
-def maybe_wrap(f: Callable[P, R]) -> Callable[P, Maybe[R]]:
+def wrap_maybe(f: Callable[P, R]) -> Callable[P, Maybe[R]]:
 
     """Decorator (or wrapper) for common python code.
 
@@ -295,7 +295,7 @@ def maybe_wrap(f: Callable[P, R]) -> Callable[P, Maybe[R]]:
     return inner
 
 
-def maybe_unwrap(f: Callable[P, Maybe[R]]) -> Callable[P, R | None]:
+def unwrap_maybe(f: Callable[P, Maybe[R]]) -> Callable[P, R | None]:
 
     """Decorator (or wrapper) to convert back to common Python.
 

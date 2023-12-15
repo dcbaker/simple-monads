@@ -1,13 +1,11 @@
 # SPDX-License-Identifier: MIT
 # Copyright © 2023 Dylan Baker
 
-
 from __future__ import annotations
 
 import pytest
 
 from pyadt.result import *
-
 
 class TestResult:
 
@@ -142,7 +140,7 @@ class TestResult:
     class TestOrElse:
 
         @staticmethod
-        def _cb(res: str) -> Result[int, str]:
+        def _cb(res: str) -> Result[str, int]:
             return Error(int(res))
 
         def test_error(self) -> None:
@@ -160,7 +158,7 @@ class TestResult:
             assert e.err().unwrap() == 4
 
         def test_success(self) -> None:
-            s: Result[str, int] = Success(4)
+            s: Result[int, int] = Success(4)
             assert s.err().is_nothing()
 
     class TestOk:
@@ -170,5 +168,55 @@ class TestResult:
             assert e.ok().is_nothing()
 
         def test_success(self) -> None:
-            s: Result[str, int] = Success(4)
+            s: Result[int, int] = Success(4)
             assert s.ok().unwrap() == 4
+
+
+class TestWrapResult:
+
+    def test_success(self) -> None:
+        @wrap_result()
+        def foo() -> str:
+            return ''
+
+        assert foo() == Success('')
+
+    def test_error(self) -> None:
+        @wrap_result(Exception)
+        def foo() -> str:
+            raise Exception('foo')
+
+        assert isinstance(foo().unwrap_err(), Exception)
+
+    def test_error_multi(self) -> None:
+        @wrap_result((ValueError, RecursionError))
+        def foo() -> str:
+            raise ValueError('foo')
+
+        assert isinstance(foo().unwrap_err(), ValueError)
+
+    def test_error_uncaught(self) -> None:
+        @wrap_result(ArithmeticError)
+        def foo() -> str:
+            raise ValueError('foo')
+
+        with pytest.raises(ValueError, match='foo'):
+            foo()
+
+
+class TestUnwrapResult:
+
+    def test_success(self) -> None:
+        @unwrap_result
+        def foo() -> Result[str, ValueError]:
+            return Success('foo')
+
+        assert foo() == 'foo'
+
+    def test_error(self) -> None:
+        @unwrap_result
+        def foo() -> Result[str, ValueError]:
+            return Error(ValueError('foo'))
+
+        with pytest.raises(ValueError, match='foo'):
+            foo()

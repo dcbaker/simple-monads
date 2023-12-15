@@ -105,7 +105,7 @@ class TestMaybe:
     class TestAndThen:
 
         @staticmethod
-        @maybe_wrap
+        @wrap_maybe
         def to_int(v: str) -> int | None:
             try:
                 return int(v)
@@ -157,14 +157,14 @@ class TestMaybeFunction:
 class TestMaybeWrap:
 
     def test_something(self) -> None:
-        @maybe_wrap
+        @wrap_maybe
         def helper() -> str:
             return 'foo'
 
         assert helper() == Something('foo')
 
     def test_nothing(self) -> None:
-        @maybe_wrap
+        @wrap_maybe
         def helper() -> None:
             return None
 
@@ -174,14 +174,14 @@ class TestMaybeWrap:
 class TestMaybeUnwrap:
 
     def test_something(self) -> None:
-        @maybe_unwrap
+        @unwrap_maybe
         def helper() -> Maybe[str]:
             return Something('foo')
 
         assert helper() == 'foo'
 
     def test_nothing(self) -> None:
-        @maybe_unwrap
+        @unwrap_maybe
         def helper() -> Maybe[str]:
             return Nothing()
 

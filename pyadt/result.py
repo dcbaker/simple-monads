@@ -4,23 +4,28 @@
 """An implementation of a Result type."""
 
 from __future__ import annotations
+from functools import wraps
 from typing import *
 from dataclasses import dataclass
 
 if TYPE_CHECKING:
     from .maybe import Maybe
 
+P = ParamSpec('P')
+R = TypeVar('R')
 T = TypeVar('T')
 U = TypeVar('U')
 E = TypeVar('E')
 F = TypeVar('F')
 
 __all__ = [
-    'Result',
     'Error',
+    'ErrorWrapper',
+    'Result',
     'Success',
     'UnwrapError',
-    'ErrorWrapper',
+    'unwrap_result',
+    'wrap_result',
 ]
 
 
@@ -263,3 +268,55 @@ class Success(Result[T, E]):
     def ok(self) -> Maybe[T]:
         from .maybe import Something
         return Something(self._held)
+
+
+def wrap_result(catch: type[Exception] | tuple[type[Exception], ...] = Exception) -> Callable[[Callable[P, R]], Callable[P, Result[R, Exception]]]:
+    """Decorator for wrapping throwing functions to return a Result instead
+
+    This is meant for simple cases only, if you wish to have more complex error
+    handling than simply catching all exceptions and putting them in the Result
+    you will need to handle that yourself.
+
+    :param f: A callable to wrap
+    :param catch: A Exeption or tuple of Exceptions to catch, defaults to Exception
+    :return: A result of T or the caught Exception(s) as E
+    """
+
+    def wrapper(f: Callable[P, R]) -> Callable[P, Result[R, Exception]]:
+        @wraps(f)
+        def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, Exception]:
+            try:
+                return Success(f(*args, **kwargs))
+            except catch as e:
+                return Error(e)
+
+        return inner
+
+    return wrapper
+
+
+def unwrap_result(f: Callable[P, Result[R, E]]) -> Callable[P, R]:
+    """Decorator for unwrapping Result returning functions, return the result or
+    throwing the Exception.
+
+    This is meant for simple cases only, if you wish to have more complex error
+    handling than simply catching all exceptions and putting them in the Result
+    you will need to handle that yourself.
+
+    :param f: A callable to unwrap
+    :raises ErrorWrapper: if E is not an Exception type
+    :raises E: any values of E that Exceptions
+    :return: the valu eof a Success
+    """
+
+    @wraps(f)
+    def inner(*args: P.args, **kwargs: P.kwargs) -> R:
+        r = f(*args, **kwargs)
+        if r.is_ok():
+            return r.unwrap()
+        e = r.unwrap_err()
+        if isinstance(e, Exception):
+            raise e
+        raise ErrorWrapper(e)
+
+    return inner

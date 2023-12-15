@@ -85,3 +85,42 @@ class TestResult:
             msg = 'test message'
             with pytest.raises(UnwrapError, match=msg):
                 Success('foo').unwrap_err(msg)
+
+    class TestMap:
+
+        def test_error(self) -> None:
+            e: Result[str, Exception] = Error(Exception('foo'))
+            assert e.map(int) == e
+
+        def test_success(self) -> None:
+            assert Success('1').map(int) == Success(1)
+
+    class TestMapErr:
+
+        def test_error(self) -> None:
+            e: Result[str, str] = Error('1')
+            assert e.map_err(int) == Error(1)
+
+        def test_success(self) -> None:
+            s: Success[str, str] = Success('1')
+            assert s.map_err(int) == s
+
+    class TestMapOr:
+
+        def test_error(self) -> None:
+            e: Result[str, str] = Error('1')
+            assert e.map_or('foo', lambda _: 'bar') == 'foo'
+
+        def test_success(self) -> None:
+            s: Success[str, str] = Success('1')
+            assert s.map_or('foo', lambda _: 'bar') == 'bar'
+
+    class TestMapOrElse:
+
+        def test_error(self) -> None:
+            e: Result[str, str] = Error('1')
+            assert e.map_or_else(lambda: 'foo', lambda _: 'bar') == 'foo'
+
+        def test_success(self) -> None:
+            s: Success[str, str] = Success('1')
+            assert s.map_or_else(lambda: 'foo', lambda _: 'bar') == 'bar'

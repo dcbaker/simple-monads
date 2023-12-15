@@ -8,18 +8,25 @@ from typing import *
 from dataclasses import dataclass
 
 T = TypeVar('T')
-E = TypeVar('E', bound=Exception)
+U = TypeVar('U')
+E = TypeVar('E')
+F = TypeVar('F')
 
 __all__ = [
     'Result',
     'Error',
     'Success',
     'UnwrapError',
+    'ErrorWrapper',
 ]
 
 
 class UnwrapError(Exception):
-    pass
+    """Error thrown when unwrapping is invalid."""
+
+
+class ErrorWrapper(Exception):
+    """wraps non Exception Errors"""
 
 
 class Result(Generic[T, E]):
@@ -29,10 +36,12 @@ class Result(Generic[T, E]):
     @staticmethod
     def is_ok() -> bool:
         """Returns True if this is a Success otherwise False."""
+        raise NotImplementedError()
 
     @staticmethod
     def is_err() -> bool:
         """Returns True if this is an Error otherwise False."""
+        raise NotImplementedError()
 
     def unwrap(self, msg: str | None = None) -> T:
         """Get the held value or throw an Exception.
@@ -68,6 +77,40 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
+    def map(self, cb: Callable[[T], U]) -> Result[U, E]:
+        """Transform the held value or return the Error unchanged.
+
+        :param cb: A callback taking the held success type and returning a new one
+        :return: A result with the transformed Success or an unchanged Error
+        """
+        raise NotImplementedError()
+
+    def map_err(self, cb: Callable[[E], F]) -> Result[T, F]:
+        """Transform the held error or return the success unchanged.
+
+        :param cb: A callback taking the held error type and returning a new one
+        :return: A result with the transformed Error or an unchanged Success
+        """
+        raise NotImplementedError()
+
+    def map_or(self, default: U, cb: Callable[[T], U]) -> U:
+        """Transform the held value or return the default.
+
+        :param default: A value to use of Error
+        :param cb: A callback to transform the held value of a Success
+        :return: The fallback value or the transformed held value
+        """
+        raise NotImplementedError()
+
+    def map_or_else(self, default: Callable[[], U], cb: Callable[[T], U]) -> U:
+        """Transform the held value or return the calculated default
+
+        :param default: A callable returning a value for Error
+        :param cb: A callback to transform the held value of a Success
+        :return: The fallback value or the transformed held value
+        """
+        raise NotImplementedError()
+
 
 @dataclass(slots=True, frozen=True)
 class Error(Result[T, E]):
@@ -86,7 +129,12 @@ class Error(Result[T, E]):
         return True
 
     def unwrap(self, msg: str | None = None) -> T:
-        raise UnwrapError(msg or 'Attempted to unwrap an Error') from self._held
+        e: Exception
+        if isinstance(self._held, Exception):
+            e = self._held
+        else:
+            e = ErrorWrapper(self._held)
+        raise UnwrapError(msg or 'Attempted to unwrap an Error') from e
 
     def unwrap_or(self, fallback: T) -> T:
         return fallback
@@ -96,6 +144,18 @@ class Error(Result[T, E]):
 
     def unwrap_err(self, msg: str | None = None) -> E:
         return self._held
+
+    def map(self, cb: Callable[[T], U]) -> Result[U, E]:
+        return Error(self._held)
+
+    def map_err(self, cb: Callable[[E], F]) -> Result[T, F]:
+        return Error(cb(self._held))
+
+    def map_or(self, default: U, cb: Callable[[T], U]) -> U:
+        return default
+
+    def map_or_else(self, default: Callable[[], U], cb: Callable[[T], U]) -> U:
+        return default()
 
 
 @dataclass(slots=True, frozen=True)
@@ -126,3 +186,15 @@ class Success(Result[T, E]):
         if msg is None:
             msg = 'Attempted to unwrap the error from a Success'
         raise UnwrapError(msg)
+
+    def map(self, cb: Callable[[T], U]) -> Result[U, E]:
+        return Success(cb(self._held))
+
+    def map_err(self, cb: Callable[[E], F]) -> Result[T, F]:
+        return Success(self._held)
+
+    def map_or(self, default: U, cb: Callable[[T], U]) -> U:
+        return cb(self._held)
+
+    def map_or_else(self, default: Callable[[], U], cb: Callable[[T], U]) -> U:
+        return cb(self._held)

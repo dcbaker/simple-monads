@@ -2,6 +2,7 @@
 # Copyright © 2023 Dylan Baker
 
 from __future__ import annotations
+from typing import cast
 
 import pytest
 
@@ -88,7 +89,7 @@ class TestResult:
 
         def test_error(self) -> None:
             e: Result[str, Exception] = Error(Exception('foo'))
-            assert e.map(int) == e
+            assert e.map(int) == cast(Result[int, Exception], e)
 
         def test_success(self) -> None:
             assert Success('1').map(int) == Success(1)
@@ -101,7 +102,7 @@ class TestResult:
 
         def test_success(self) -> None:
             s: Success[str, str] = Success('1')
-            assert s.map_err(int) == s
+            assert s.map_err(int) == cast(Success[str, int], s)
 
     class TestMapOr:
 
@@ -131,7 +132,7 @@ class TestResult:
 
         def test_error(self) -> None:
             e: Result[str, str] = Error('1')
-            assert e.and_then(self._cb) == e
+            assert e.and_then(self._cb) == cast(Result[int, str], e)
 
         def test_success(self) -> None:
             s: Success[str, str] = Success('1')
@@ -149,7 +150,7 @@ class TestResult:
 
         def test_success(self) -> None:
             s: Success[str, str] = Success('1')
-            assert s.or_else(self._cb) == s
+            assert s.or_else(self._cb) == cast(Result[str, int], s)
 
     class TestErr:
 
@@ -250,7 +251,7 @@ class TestPpropgate:
 
         @stop
         def inner() -> str:
-            r: Result[str, 4] = Error(4)
+            r: Result[str, int] = Error(4)
             x = r.propagate()
             return x + 'bar'
 
@@ -260,7 +261,7 @@ class TestPpropgate:
 
         @stop
         def inner() -> str:
-            r: Result[str, 4] = Success('foo')
+            r: Result[str, int] = Success('foo')
             x = r.propagate()
             return x + 'bar'
 

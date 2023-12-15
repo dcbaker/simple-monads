@@ -111,6 +111,22 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
+    def and_then(self, cb: Callable[[T], Result[U, E]]) -> Result[U, E]:
+        """Run the callback if this is a Success, otherwise return the Err unchanged
+
+        :param cb: A callback run on the held value of a Success
+        :return: a new Result with a transformed value or the error
+        """
+        raise NotImplementedError()
+
+    def or_else(self, cb: Callable[[E], Result[T, F]]) -> Result[T, F]:
+        """Run the callback if this is an Error, otherwise return the Success unchanged
+
+        :param cb: A callback run on the held value of a Error
+        :return: a new Result with a transformed value or the Success
+        """
+        raise NotImplementedError()
+
 
 @dataclass(slots=True, frozen=True)
 class Error(Result[T, E]):
@@ -157,6 +173,12 @@ class Error(Result[T, E]):
     def map_or_else(self, default: Callable[[], U], cb: Callable[[T], U]) -> U:
         return default()
 
+    def and_then(self, cb: Callable[[T], Result[U, E]]) -> Result[U, E]:
+        return Error(self._held)
+
+    def or_else(self, cb: Callable[[E], Result[T, F]]) -> Result[T, F]:
+        return cb(self._held)
+
 
 @dataclass(slots=True, frozen=True)
 class Success(Result[T, E]):
@@ -198,3 +220,9 @@ class Success(Result[T, E]):
 
     def map_or_else(self, default: Callable[[], U], cb: Callable[[T], U]) -> U:
         return cb(self._held)
+
+    def and_then(self, cb: Callable[[T], Result[U, E]]) -> Result[U, E]:
+        return cb(self._held)
+
+    def or_else(self, cb: Callable[[E], Result[T, F]]) -> Result[T, F]:
+        return Success(self._held)

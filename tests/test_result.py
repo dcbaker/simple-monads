@@ -124,3 +124,31 @@ class TestResult:
         def test_success(self) -> None:
             s: Success[str, str] = Success('1')
             assert s.map_or_else(lambda: 'foo', lambda _: 'bar') == 'bar'
+
+    class TestAndThen:
+
+        @staticmethod
+        def _cb(res: str) -> Result[int, str]:
+            return Success(int(res))
+
+        def test_error(self) -> None:
+            e: Result[str, str] = Error('1')
+            assert e.and_then(self._cb) == e
+
+        def test_success(self) -> None:
+            s: Success[str, str] = Success('1')
+            assert s.and_then(self._cb) == Success(1)
+
+    class TestOrElse:
+
+        @staticmethod
+        def _cb(res: str) -> Result[int, str]:
+            return Error(int(res))
+
+        def test_error(self) -> None:
+            e: Result[str, str] = Error('1')
+            assert e.or_else(self._cb) == Error(1)
+
+        def test_success(self) -> None:
+            s: Success[str, str] = Success('1')
+            assert s.or_else(self._cb) == s

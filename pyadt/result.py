@@ -4,9 +4,8 @@
 """An implementation of a Result type."""
 
 from __future__ import annotations
-from contextlib import contextmanager
 from functools import wraps
-from typing import *
+from typing import TYPE_CHECKING, TypeVar, ParamSpec, Generic, Callable
 from dataclasses import dataclass
 
 if TYPE_CHECKING:
@@ -43,7 +42,8 @@ class Propagation(Generic[E], Exception):
     """Uses exception handling to propagate up."""
 
     def __init__(self, err: E) -> None:
-        super().__init__('Uncaught Propogation, did you forget to decorate function with @pyadt.result.stop?')
+        super().__init__('Uncaught Propogation, did you forget to decorate '
+                         'function with @pyadt.result.stop?')
         self.err = err
 
 
@@ -154,7 +154,7 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
-    def ok(self) -> Maybe[T]:
+    def ok(self) -> Maybe[T]:  # pylint: disable=invalid-name
         """Transform an Result[T, E] into a Maybe[T]
 
         A Success will be mapped to Something[T], while and Error becomes Nothing[T]
@@ -187,6 +187,8 @@ class Result(Generic[T, E]):
 
 @dataclass(slots=True, frozen=True)
 class Error(Result[T, E]):
+
+    """A Result holding an Error."""
 
     _held: E
 
@@ -237,11 +239,11 @@ class Error(Result[T, E]):
         return cb(self._held)
 
     def err(self) -> Maybe[E]:
-        from .maybe import Something
+        from .maybe import Something  # pylint: disable=import-outside-toplevel
         return Something(self._held)
 
     def ok(self) -> Maybe[T]:
-        from .maybe import Nothing
+        from .maybe import Nothing  # pylint: disable=import-outside-toplevel
         return Nothing()
 
     def propagate(self) -> T:
@@ -250,6 +252,8 @@ class Error(Result[T, E]):
 
 @dataclass(slots=True, frozen=True)
 class Success(Result[T, E]):
+
+    """A Result holding an value."""
 
     _held: T
     def __bool__(self) -> bool:
@@ -296,18 +300,19 @@ class Success(Result[T, E]):
         return Success(self._held)
 
     def err(self) -> Maybe[E]:
-        from .maybe import Nothing
+        from .maybe import Nothing  # pylint: disable=import-outside-toplevel
         return Nothing()
 
     def ok(self) -> Maybe[T]:
-        from .maybe import Something
+        from .maybe import Something  # pylint: disable=import-outside-toplevel
         return Something(self._held)
 
     def propagate(self) -> T:
         return self._held
 
 
-def wrap_result(catch: type[Exception] | tuple[type[Exception], ...] = Exception) -> Callable[[Callable[P, R]], Callable[P, Result[R, Exception]]]:
+def wrap_result(catch: type[Exception] | tuple[type[Exception], ...] = Exception
+                ) -> Callable[[Callable[P, R]], Callable[P, Result[R, Exception]]]:
     """Decorator for wrapping throwing functions to return a Result instead
 
     This is meant for simple cases only, if you wish to have more complex error
@@ -324,7 +329,7 @@ def wrap_result(catch: type[Exception] | tuple[type[Exception], ...] = Exception
         def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, Exception]:
             try:
                 return Success(f(*args, **kwargs))
-            except catch as e:
+            except catch as e:  # pylint: disable=broad-exception-caught
                 return Error(e)
 
         return inner
@@ -348,13 +353,13 @@ def unwrap_result(f: Callable[P, Result[R, E]]) -> Callable[P, R]:
 
     @wraps(f)
     def inner(*args: P.args, **kwargs: P.kwargs) -> R:
-        r = f(*args, **kwargs)
-        if r.is_ok():
-            return r.unwrap()
-        e = r.unwrap_err()
-        if isinstance(e, Exception):
-            raise e
-        raise ErrorWrapper(e)
+        result = f(*args, **kwargs)
+        if result.is_ok():
+            return result.unwrap()
+        err = result.unwrap_err()
+        if isinstance(err, Exception):
+            raise err
+        raise ErrorWrapper(err)
 
     return inner
 

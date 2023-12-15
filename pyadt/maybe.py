@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 from functools import wraps
-from typing import *
+from typing import TYPE_CHECKING, TypeVar, ParamSpec, Generic, Callable
 from dataclasses import dataclass
 
 if TYPE_CHECKING:
@@ -166,6 +166,8 @@ class Maybe(Generic[T]):
 @dataclass(slots=True, frozen=True)
 class Something(Maybe[T]):
 
+    """A Maybe that holds a value."""
+
     _held: T
 
     def __bool__(self) -> bool:
@@ -207,16 +209,18 @@ class Something(Maybe[T]):
         return self
 
     def ok_or(self, err: E) -> Result[T, E]:
-        from .result import Success
+        from .result import Success  # pylint: disable=import-outside-toplevel
         return Success(self._held)
 
     def ok_or_else(self, err: Callable[[], E]) -> Result[T, E]:
-        from .result import Success
+        from .result import Success  # pylint: disable=import-outside-toplevel
         return Success(self._held)
 
 
 @dataclass(slots=True, frozen=True)
 class Nothing(Maybe[T]):
+
+    """A Maybe that does not hold a value."""
 
     def __bool__(self) -> bool:
         return False
@@ -259,11 +263,11 @@ class Nothing(Maybe[T]):
         return fallback()
 
     def ok_or(self, err: E) -> Result[T, E]:
-        from .result import Error
+        from .result import Error  # pylint: disable=import-outside-toplevel
         return  Error(err)
 
     def ok_or_else(self, err: Callable[[], E]) -> Result[T, E]:
-        from .result import Error
+        from .result import Error  # pylint: disable=import-outside-toplevel
         return  Error(err())
 
 

@@ -4,6 +4,7 @@
 """An implementation of a Result type."""
 
 from __future__ import annotations
+from contextlib import contextmanager
 from functools import wraps
 from typing import *
 from dataclasses import dataclass
@@ -24,6 +25,7 @@ __all__ = [
     'Result',
     'Success',
     'UnwrapError',
+    'stop',
     'unwrap_result',
     'wrap_result',
 ]
@@ -35,6 +37,14 @@ class UnwrapError(Exception):
 
 class ErrorWrapper(Exception):
     """wraps non Exception Errors"""
+
+
+class Propagation(Generic[E], Exception):
+    """Uses exception handling to propagate up."""
+
+    def __init__(self, err: E) -> None:
+        super().__init__('Uncaught Propogation, did you forget to decorate function with @pyadt.result.stop?')
+        self.err = err
 
 
 class Result(Generic[T, E]):
@@ -153,6 +163,27 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
+    def propagate(self) -> T:
+        """Get the value, or propagate an error up the stack.
+
+        This is achieved by throwing a special Exception, which is caught using
+        the :func:`stop` decorator. This is ugly and an abuse of Exceptions,
+        (control flow through Exceptions, which is bad, m'kay?). However, this
+        is the only obvious portable way to implement this in Python.
+
+        :return: The held value of a Success
+
+        >>> @stop
+        ... def func() -> Result[bool, int]:
+        ...     r: Result[str, int] = Error(5)
+        ...     x = r.propagate()  # is now str, or thrown
+        ...     return x == 'foo'
+        ...
+        >>> func()
+        Error(_held=5)
+        """
+        raise NotImplementedError()
+
 
 @dataclass(slots=True, frozen=True)
 class Error(Result[T, E]):
@@ -213,6 +244,9 @@ class Error(Result[T, E]):
         from .maybe import Nothing
         return Nothing()
 
+    def propagate(self) -> T:
+        raise Propagation(self._held)
+
 
 @dataclass(slots=True, frozen=True)
 class Success(Result[T, E]):
@@ -269,6 +303,9 @@ class Success(Result[T, E]):
         from .maybe import Something
         return Something(self._held)
 
+    def propagate(self) -> T:
+        return self._held
+
 
 def wrap_result(catch: type[Exception] | tuple[type[Exception], ...] = Exception) -> Callable[[Callable[P, R]], Callable[P, Result[R, Exception]]]:
     """Decorator for wrapping throwing functions to return a Result instead
@@ -318,5 +355,25 @@ def unwrap_result(f: Callable[P, Result[R, E]]) -> Callable[P, R]:
         if isinstance(e, Exception):
             raise e
         raise ErrorWrapper(e)
+
+    return inner
+
+
+def stop(f: Callable[P, R]) -> Callable[P, Result[R, E]]:
+    """Decorator for functions that use :meth:`Result.propagate`.
+
+    This is required to catch the propagated Error, and ensure that it is
+    returned instead of continuing to go up the stack.
+
+    :param f: The function to wrap
+    :return: The original function wrapped to handle Propagation Exceptions
+    """
+
+    @wraps(f)
+    def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
+        try:
+            return Success(f(*args, **kwargs))
+        except Propagation as e:
+            return Error(e.err)
 
     return inner

@@ -242,3 +242,26 @@ class TestUnwrapResult:
 
         with pytest.raises(ValueError, match='foo'):
             foo()
+
+
+class TestPpropgate:
+
+    def test_prop(self) -> None:
+
+        @stop
+        def inner() -> str:
+            r: Result[str, 4] = Error(4)
+            x = r.propagate()
+            return x + 'bar'
+
+        assert inner() == Error(4)
+
+    def test_no_prop(self) -> None:
+
+        @stop
+        def inner() -> str:
+            r: Result[str, 4] = Success('foo')
+            x = r.propagate()
+            return x + 'bar'
+
+        assert inner() == Success('foobar')

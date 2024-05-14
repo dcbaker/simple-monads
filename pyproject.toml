@@ -354,4 +354,5 @@ dummy-variables-rgx = "_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unuse
 # Argument names that match this expression will be ignored.
 ignored-argument-names = "_.*|^ignored_|^unused_"
 
-
+[tool.pytest.ini_options]
+addopts = ["--doctest-modules"]

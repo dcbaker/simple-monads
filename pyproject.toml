@@ -20,7 +20,7 @@ keywords = [
   "Result",
 ]
 
-[tool.flit.metadata.requires-extra]
+[project.optional-dependencies]
 test = [
   "pytest",
   "mypy",

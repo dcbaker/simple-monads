@@ -30,16 +30,36 @@ __all__ = [
 
 class EmptyMaybeError(Exception):
 
-    """Raised when attempting to access an empty Option type."""
+    """Raised when calling :meth:`Maybe.unwrap` on an empty Maybe.
+
+    It is advised to *not* catch this exception, as it is usually the result of
+    an incorrect assumption in the code, or it truly is fatal.
+
+    In the former case replacing :meth:`Maybe.unwrap` with
+    :meth:`Maybe.unwrap_or` or :meth:`Maybe.get` may be mor appropriate.
+    """
 
 
 class Maybe(Generic[T]):
 
-    """Base Class for Option, do not directly instantiate"""
+    """Base Class for Option, do not directly instantiate.
+
+    This class is not useful for instantiation, instead use either
+    :class:`Something` or :class:`Nothing`. This class is useful for isinstance
+    """
 
     @staticmethod
     def is_something() -> bool:
         """Is this Something?
+
+        It is *strongly* recommended to use this method an not
+        :func:`isinstance`.
+
+        >>> maybe('foo').is_something()
+        True
+
+        >>> maybe(None).is_something()
+        False
 
         :return: True if this is Something otherwise False
         """
@@ -48,6 +68,15 @@ class Maybe(Generic[T]):
     @staticmethod
     def is_nothing() -> bool:
         """Is this Nothing?
+
+        It is *strongly* recommended to use this method an not
+        :func:`isinstance`.
+
+        >>> maybe('foo').is_nothing()
+        False
+
+        >>> maybe(None).is_nothing()
+        True
 
         :return: True if this is Nothing otherwise False
         """
@@ -58,6 +87,12 @@ class Maybe(Generic[T]):
 
         If this Maybe is Nothing, then Nothing is returned
 
+        >>> maybe(500).map(str).unwrap()
+        '500'
+
+        >>> maybe(None).map(str).is_nothing()
+        True
+
         :param cb: A callback transforming the held value from T to U
         :return: A new Maybe holding the transformed value
         """
@@ -66,6 +101,12 @@ class Maybe(Generic[T]):
     def map_or(self, cb: Callable[[T], U], fallback: U) -> Maybe[U]:
         """Transform the held value using the callback, or use the fallback
         value.
+
+        >>> maybe(500).map_or(str, '0').unwrap()
+        '500'
+
+        >>> maybe(None).map_or(str, '0').unwrap()
+        '0'
 
         :param cb: A callback which will transform Something[T] into Something[U]
         :param fallback: A value to use for Nothing
@@ -77,6 +118,12 @@ class Maybe(Generic[T]):
         """Transform the held value using the callback, or use the fallback
         value.
 
+        >>> maybe(500).map_or_else(str, lambda: '0').unwrap()
+        '500'
+
+        >>> maybe(None).map_or_else(str, lambda: '0').unwrap()
+        '0'
+
         :param cb: A callback which will transform Something[T] into Something[U]
         :param fallback: callable returning a value U
         :return: A Something containing the transformation or the fallback value
@@ -86,8 +133,13 @@ class Maybe(Generic[T]):
     def get(self, fallback: T | None = None) -> T | None:
         """Get the held value.
 
-        Works like Python's standard get() interface, including throwing a
-        ValueError if this is Nothing.
+        Works much like Python's normal `.get()` methods, but never throws.
+
+        >>> maybe('500').get()
+        '500'
+
+        >>> maybe(None).get('a')
+        'a'
 
         :param fallback: A value to use if this is Nothing
         :return: The value or fallback
@@ -96,6 +148,19 @@ class Maybe(Generic[T]):
 
     def unwrap(self, msg: str | None = None) -> T:
         """Get the held value or throw an Exception.
+
+        >>> maybe('foo').unwrap()
+        'foo'
+
+        >>> maybe(None).unwrap()
+        Traceback (most recent call last):
+          ...
+        pyadt.maybe.EmptyMaybeError: Attempted to unwrap Nothing
+
+        >>> maybe(None).unwrap("Expected a result")
+        Traceback (most recent call last):
+          ...
+        pyadt.maybe.EmptyMaybeError: Expected a result
 
         :param msg: The error message, otherwise a default is used
         :raises EmptyMaybeError: If this is Nothing
@@ -109,6 +174,12 @@ class Maybe(Generic[T]):
         Unlike get() doesn't provide a fallback of None, which narrows type
         checking.
 
+        >>> maybe(500).unwrap_or(0)
+        500
+
+        >>> maybe(None).unwrap_or(0)
+        0
+
         :param fallback: The fallback to return
         :return: The held value or the fallback
         """
@@ -116,6 +187,12 @@ class Maybe(Generic[T]):
 
     def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
         """Get the value or call the fallback to get a value
+
+        >>> maybe(500).unwrap_or_else(lambda: 0)
+        500
+
+        >>> maybe(None).unwrap_or_else(lambda: 0)
+        0
 
         :param fallback: A callable returning a type T
         :return: The held value or the fallback
@@ -125,6 +202,9 @@ class Maybe(Generic[T]):
     def and_then(self, cb: Callable[[T], Maybe[U]]) -> Maybe[U]:
         """Run a callback on the value if it is Something
 
+        >>> maybe(500).and_then(lambda x: maybe(0)).unwrap()
+        0
+
         :param cb: A callback to run on the held value or Something()
         :return: A Maybe[U] with the result of the callback or nothing
         """
@@ -132,6 +212,12 @@ class Maybe(Generic[T]):
 
     def or_else(self, fallback: Callable[[], Maybe[T]]) -> Maybe[T]:
         """Run a callback to get a value if this is Nothing or return self.
+
+        >>> maybe(500).or_else(lambda: maybe(100)).unwrap()
+        500
+
+        >>> maybe(None).or_else(lambda: maybe(100)).unwrap()
+        100
 
         :param fallback: A callback to run if this is Nothing returning a
             Maybe[T]
@@ -146,6 +232,12 @@ class Maybe(Generic[T]):
         If the Option is Something, that will be placed in the Success value,
         otherwise the Error value of E will be used.
 
+        >>> maybe(0).ok_or("WHAT!").unwrap()
+        0
+
+        >>> maybe(None).ok_or("WHAT!").unwrap_err()
+        'WHAT!'
+
         :param err: An error if this is Nothing
         :return: A result with the held value as a Success or an Error
         """
@@ -156,6 +248,12 @@ class Maybe(Generic[T]):
 
         If the Option is Something, that will be placed in the Success value,
         otherwise the Error value of E will be used.
+
+        >>> maybe(0).ok_or_else(lambda: "WHAT!").unwrap()
+        0
+
+        >>> maybe(None).ok_or_else(lambda: "WHAT!").unwrap_err()
+        'WHAT!'
 
         :param err: An callable returning a type E
         :return: A result with the held value as a Success or an Error
@@ -172,6 +270,9 @@ class Something(Maybe[T]):
 
     def __bool__(self) -> bool:
         return True
+
+    def __repr__(self) -> str:
+        return f"Something({self._held!r})"
 
     @staticmethod
     def is_something() -> bool:
@@ -277,6 +378,12 @@ def maybe(result: T | None) -> Maybe[T]:
     This can convert python code using the standard T | None Optional.
     This works correctly only when None is not a valid member of T
 
+    >>> maybe(0)
+    Something(0)
+
+    >>> maybe(None)
+    Nothing()
+
     :param result: A None or T type to wrap
     :return: Nothing if result is None, else Something[T](result)
     """
@@ -285,11 +392,32 @@ def maybe(result: T | None) -> Maybe[T]:
     return Something(result)
 
 
-def wrap_maybe(f: Callable[P, R]) -> Callable[P, Maybe[R]]:
+def wrap_maybe(f: Callable[P, R | None]) -> Callable[P, Maybe[R]]:
 
     """Decorator (or wrapper) for common python code.
 
     Converts code returning T | None to return Maybe[T]
+
+    >>> @wrap_maybe
+    ... def func(arg: bool) -> str | None:
+    ...     if arg:
+    ...         return "yes!"
+    ...     return None
+    ...
+    >>> func(True)
+    Something('yes!')
+
+    >>> func(False)
+    Nothing()
+
+    >>> import os
+    >>> f = wrap_maybe(os.environ.get)
+    >>> f("Totally not there")
+    Nothing()
+
+    :param f: A callable returning a type R or None
+    :return: A new callable return :class:`Maybe[R]`, where a non-null are
+        :class:`Success`, and None is :class:`Nothing`
     """
 
     @wraps(f)
@@ -307,6 +435,25 @@ def unwrap_maybe(f: Callable[P, Maybe[R]]) -> Callable[P, R | None]:
 
     This is meant to ease transitioning a codebase to using pyadt, but allowing
     code to internally use Maybe, but return common Python Optional
+
+    >>> def raw(arg: str) -> Maybe[str]:
+    ...     if arg:
+    ...         return Something(arg)
+    ...     return Nothing()
+
+    >>> f = unwrap_maybe(raw)
+    >>> f("foo")
+    'foo'
+
+    >>> @unwrap_maybe
+    ... def g(arg: str) -> str | None:
+    ...     return raw(arg)
+
+    >>> g("foo")
+    'foo'
+
+    :param f: A callable returning a :class:`Maybe[T]`
+    :return: A new callable returning a `T | None`
     """
 
     @wraps(f)

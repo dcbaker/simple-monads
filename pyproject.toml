@@ -7,6 +7,25 @@ name = "pyadt"
 authors = [{name = "Dylan Baker", email = "dylan@pnwbakers.com"}]
 dynamic = ["version", "description"]
 requires-python = ">=3.10"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Topic :: Software Development :: Libraries",
+  "Typing :: Typed",
+]
+keywords = [
+  "ADT",
+  "Optional",
+  "Result",
+]
+
+[tool.flit.metadata.requires-extra]
+test = [
+  "pytest",
+  "mypy",
+  "pylint",
+]
 
 [tool.mypy]
 python_version = "3.10"

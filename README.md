@@ -1,2 +1,3 @@
-# pyadt
-Python Algebraic Data Types
+# simple-monad
+
+Simple python Monads

@@ -43,7 +43,7 @@ class Propagation(Generic[E], Exception):
 
     def __init__(self, err: E) -> None:
         super().__init__('Uncaught Propogation, did you forget to decorate '
-                         'function with @pyadt.result.stop?')
+                         'function with @simple_monads.result.stop?')
         self.err = err
 
 

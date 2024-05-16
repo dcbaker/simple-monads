@@ -155,12 +155,12 @@ class Maybe(Generic[T]):
         >>> maybe(None).unwrap()
         Traceback (most recent call last):
           ...
-        pyadt.maybe.EmptyMaybeError: Attempted to unwrap Nothing
+        simple_monads.maybe.EmptyMaybeError: Attempted to unwrap Nothing
 
         >>> maybe(None).unwrap("Expected a result")
         Traceback (most recent call last):
           ...
-        pyadt.maybe.EmptyMaybeError: Expected a result
+        simple_monads.maybe.EmptyMaybeError: Expected a result
 
         :param msg: The error message, otherwise a default is used
         :raises EmptyMaybeError: If this is Nothing
@@ -433,8 +433,8 @@ def unwrap_maybe(f: Callable[P, Maybe[R]]) -> Callable[P, R | None]:
 
     Converts code returning Maybe[T] to T | None.
 
-    This is meant to ease transitioning a codebase to using pyadt, but allowing
-    code to internally use Maybe, but return common Python Optional
+    This is meant to ease transitioning a codebase to using simple_monads, but
+    allowing code to internally use Maybe, but return common Python Optional
 
     >>> def raw(arg: str) -> Maybe[str]:
     ...     if arg:

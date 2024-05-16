@@ -3,7 +3,7 @@ requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "pyadt"
+name = "simple-monads"
 authors = [{name = "Dylan Baker", email = "dylan@pnwbakers.com"}]
 dynamic = ["version", "description"]
 requires-python = ">=3.10"
@@ -15,7 +15,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 keywords = [
-  "ADT",
+  "Monad",
   "Optional",
   "Result",
 ]
@@ -27,10 +27,13 @@ test = [
   "pylint",
 ]
 
+[tool.flit.module]
+name = "simple_monads"
+
 [tool.mypy]
 python_version = "3.10"
 strict = true
-packages = ["pyadt", "tests"]
+packages = ["simple_monads", "tests"]
 
 [tool.pylint.main]
 

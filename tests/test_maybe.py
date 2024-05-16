@@ -6,7 +6,7 @@ from typing import cast
 
 import pytest
 
-from pyadt.maybe import *
+from simple_monads.maybe import *
 
 
 class TestMaybe:

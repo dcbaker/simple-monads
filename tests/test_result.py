@@ -6,7 +6,7 @@ from typing import cast
 
 import pytest
 
-from pyadt.result import *
+from simple_monads.result import *
 
 class TestResult:
 

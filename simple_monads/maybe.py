@@ -4,11 +4,13 @@
 """An implementation of an Option type."""
 
 from __future__ import annotations
-from functools import wraps
-from typing import TYPE_CHECKING, TypeVar, ParamSpec, Generic, Callable, Awaitable
 from dataclasses import dataclass
+from functools import wraps
+from typing import TYPE_CHECKING, TypeVar, ParamSpec, Generic
 
 if TYPE_CHECKING:
+    from typing import Callable, Awaitable
+
     from .result import Result
 
 P = ParamSpec('P')
@@ -171,7 +173,8 @@ class Maybe(Generic[T]):
         """
         raise NotImplementedError()
 
-    async def map_or_else_async(self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:
+    async def map_or_else_async(
+            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:
         """Transform the held value using the callback, or use the fallback
         value asynchronously.
 
@@ -433,7 +436,8 @@ class Something(Maybe[T]):
     def map_or_else(self, cb: Callable[[T], U], fallback: Callable[[], U]) -> Maybe[U]:
         return Something(cb(self._held))
 
-    async def map_or_else_async(self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:
+    async def map_or_else_async(
+            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:
         return Something(await cb(self._held))
 
     def get(self, fallback: T | None = None) -> T | None:
@@ -507,7 +511,8 @@ class Nothing(Maybe[T]):
     def map_or_else(self, cb: Callable[[T], U], fallback: Callable[[], U]) -> Maybe[U]:
         return Something(fallback())
 
-    async def map_or_else_async(self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:
+    async def map_or_else_async(
+            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:
         return Something(await fallback())
 
     def get(self, fallback: T | None = None) -> T | None:

@@ -174,7 +174,7 @@ class Maybe(Generic[T]):
         raise NotImplementedError()
 
     async def map_or_else_async(
-            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:
+            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:  # pylint: disable=line-too-long
         """Transform the held value using the callback, or use the fallback
         value asynchronously.
 
@@ -437,7 +437,7 @@ class Something(Maybe[T]):
         return Something(cb(self._held))
 
     async def map_or_else_async(
-            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:
+            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:  # pylint: disable=line-too-long
         return Something(await cb(self._held))
 
     def get(self, fallback: T | None = None) -> T | None:
@@ -512,7 +512,7 @@ class Nothing(Maybe[T]):
         return Something(fallback())
 
     async def map_or_else_async(
-            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:
+            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:  # pylint: disable=line-too-long
         return Something(await fallback())
 
     def get(self, fallback: T | None = None) -> T | None:

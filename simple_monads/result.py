@@ -1,14 +1,16 @@
 # SPDX-License-Identifier: MIT
-# Copyright © 2023 Dylan Baker
+# Copyright © 2023-2024 Dylan Baker
 
 """An implementation of a Result type."""
 
 from __future__ import annotations
 from functools import wraps
-from typing import TYPE_CHECKING, TypeVar, ParamSpec, Generic, Callable
+from typing import TYPE_CHECKING, TypeVar, ParamSpec, Generic
 from dataclasses import dataclass
 
 if TYPE_CHECKING:
+    from typing import Awaitable, Callable
+
     from .maybe import Maybe
 
 P = ParamSpec('P')
@@ -25,8 +27,11 @@ __all__ = [
     'Success',
     'UnwrapError',
     'stop',
+    'stop_async',
     'unwrap_result',
+    'unwrap_result_async',
     'wrap_result',
+    'wrap_result_async',
 ]
 
 
@@ -86,6 +91,22 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
+    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[T]]) -> T:
+        """Return the held value or the result of the fallback.
+
+        >>> import asyncio
+        >>> async def fb():
+        ...     return 'bar'
+        >>> asyncio.run(Success('foo').unwrap_or_else_async(fb))
+        'foo'
+        >>> asyncio.run(Error(5).unwrap_or_else_async(fb))
+        'bar'
+
+        :param fallback: An async callable to generate a result if this in Error
+        :return: Either the held value or the fallback value
+        """
+        raise NotImplementedError()
+
     def unwrap_err(self, msg: str | None = None) -> E:
         """Return the Error, or throw an UnwrapError
 
@@ -103,10 +124,44 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
+    async def map_async(self, cb: Callable[[T], Awaitable[U]]) -> Result[U, E]:
+        """Transform the held value or return the Error unchanged.
+
+        >>> import asyncio
+        >>> async def cb(v: int) -> str:
+        ...     return str(v)
+        >>> asyncio.run(Success(5).map_async(cb)).unwrap()
+        '5'
+        >>> asyncio.run(Error('ah!').map_async(cb)).unwrap_err()
+        'ah!'
+
+        :param cb: An async callback taking the held success type and returning
+            a new one
+        :return: A result with the transformed Success or an unchanged Error
+        """
+        raise NotImplementedError()
+
     def map_err(self, cb: Callable[[E], F]) -> Result[T, F]:
         """Transform the held error or return the success unchanged.
 
         :param cb: A callback taking the held error type and returning a new one
+        :return: A result with the transformed Error or an unchanged Success
+        """
+        raise NotImplementedError()
+
+    async def map_err_async(self, cb: Callable[[E], Awaitable[F]]) -> Result[T, F]:
+        """Transform the held error or return the success unchanged,
+        asynchronously.
+
+        >>> import asyncio
+        >>> async def cb(v: str) -> str:
+        ...     return 'oh, no! ' + v
+        >>> asyncio.run(Success(5).map_err_async(cb)).unwrap()
+        5
+        >>> asyncio.run(Error('ah!').map_err_async(cb)).unwrap_err()
+        'oh, no! ah!'
+
+        :param cb: An asynchronous callback taking the held error type and returning a new one
         :return: A result with the transformed Error or an unchanged Success
         """
         raise NotImplementedError()
@@ -120,11 +175,48 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
+    async def map_or_async(self, default: U, cb: Callable[[T], Awaitable[U]]) -> U:
+        """Transform the held value or return the default.
+
+        >>> import asyncio
+        >>> async def cb(v: int) -> int:
+        ...     return v + 5
+        >>> asyncio.run(Success(5).map_or_async(0, cb))
+        10
+        >>> asyncio.run(Error('ah!').map_or_async(0, cb))
+        0
+
+        :param default: A value to use of Error
+        :param cb: An async callback to transform the held value of a Success
+        :return: The fallback value or the transformed held value
+        """
+        raise NotImplementedError()
+
     def map_or_else(self, default: Callable[[], U], cb: Callable[[T], U]) -> U:
         """Transform the held value or return the calculated default
 
         :param default: A callable returning a value for Error
         :param cb: A callback to transform the held value of a Success
+        :return: The fallback value or the transformed held value
+        """
+        raise NotImplementedError()
+
+    async def map_or_else_async(
+            self, default: Callable[[], Awaitable[U]], cb: Callable[[T], Awaitable[U]]) -> U:
+        """Transform the held value or return the calculated default
+
+        >>> import asyncio
+        >>> async def cb(v: int) -> int:
+        ...     return v + 5
+        >>> async def fb() -> int:
+        ...     return 0
+        >>> asyncio.run(Success(5).map_or_else_async(fb, cb))
+        10
+        >>> asyncio.run(Error('ah!').map_or_else_async(fb, cb))
+        0
+
+        :param default: An async callable returning a value for Error
+        :param cb: An async callback to transform the held value of a Success
         :return: The fallback value or the transformed held value
         """
         raise NotImplementedError()
@@ -137,10 +229,42 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
+    async def and_then_async(self, cb: Callable[[T], Awaitable[Result[U, E]]]) -> Result[U, E]:
+        """Run the callback if this is a Success, otherwise return the Err unchanged
+
+        >>> import asyncio
+        >>> async def cb(v: int) -> Result[int, E]:
+        ...     return Success(v + 5)
+        >>> asyncio.run(Success(5).and_then_async(cb)).unwrap()
+        10
+        >>> asyncio.run(Error('ah').and_then_async(cb)).unwrap_err()
+        'ah'
+
+        :param cb: An async callback run on the held value of a Success
+        :return: a new Result with a transformed value or the error
+        """
+        raise NotImplementedError()
+
     def or_else(self, cb: Callable[[E], Result[T, F]]) -> Result[T, F]:
         """Run the callback if this is an Error, otherwise return the Success unchanged
 
         :param cb: A callback run on the held value of a Error
+        :return: a new Result with a transformed value or the Success
+        """
+        raise NotImplementedError()
+
+    async def or_else_async(self, cb: Callable[[E], Awaitable[Result[T, F]]]) -> Result[T, F]:
+        """Run the callback if this is an Error, otherwise return the Success unchanged
+
+        >>> import asyncio
+        >>> async def cb(e: E) -> Result[int, E]:
+        ...     return Success(0)
+        >>> asyncio.run(Success(5).or_else_async(cb)).unwrap()
+        5
+        >>> asyncio.run(Error('ah').or_else_async(cb)).unwrap()
+        0
+
+        :param cb: An async callback run on the held value of a Error
         :return: a new Result with a transformed value or the Success
         """
         raise NotImplementedError()
@@ -220,26 +344,48 @@ class Error(Result[T, E]):
     def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
         return fallback()
 
+    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[T]]) -> T:
+        return await fallback()
+
     def unwrap_err(self, msg: str | None = None) -> E:
         return self._held
 
     def map(self, cb: Callable[[T], U]) -> Result[U, E]:
         return Error(self._held)
 
+    async def map_async(self, cb: Callable[[T], Awaitable[U]]) -> Result[U, E]:
+        return Error(self._held)
+
     def map_err(self, cb: Callable[[E], F]) -> Result[T, F]:
         return Error(cb(self._held))
 
+    async def map_err_async(self, cb: Callable[[E], Awaitable[F]]) -> Result[T, F]:
+        return Error(await cb(self._held))
+
     def map_or(self, default: U, cb: Callable[[T], U]) -> U:
+        return default
+
+    async def map_or_async(self, default: U, cb: Callable[[T], Awaitable[U]]) -> U:
         return default
 
     def map_or_else(self, default: Callable[[], U], cb: Callable[[T], U]) -> U:
         return default()
 
+    async def map_or_else_async(
+            self, default: Callable[[], Awaitable[U]], cb: Callable[[T], Awaitable[U]]) -> U:
+        return await default()
+
     def and_then(self, cb: Callable[[T], Result[U, E]]) -> Result[U, E]:
+        return Error(self._held)
+
+    async def and_then_async(self, cb: Callable[[T], Awaitable[Result[U, E]]]) -> Result[U, E]:
         return Error(self._held)
 
     def or_else(self, cb: Callable[[E], Result[T, F]]) -> Result[T, F]:
         return cb(self._held)
+
+    async def or_else_async(self, cb: Callable[[E], Awaitable[Result[T, F]]]) -> Result[T, F]:
+        return await cb(self._held)
 
     def err(self) -> Maybe[E]:
         from .maybe import Something  # pylint: disable=import-outside-toplevel
@@ -283,6 +429,9 @@ class Success(Result[T, E]):
     def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
         return self._held
 
+    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[T]]) -> T:
+        return self._held
+
     def unwrap_err(self, msg: str | None = None) -> E:
         if msg is None:
             msg = 'Attempted to unwrap the error from a Success'
@@ -291,19 +440,38 @@ class Success(Result[T, E]):
     def map(self, cb: Callable[[T], U]) -> Result[U, E]:
         return Success(cb(self._held))
 
+    async def map_async(self, cb: Callable[[T], Awaitable[U]]) -> Result[U, E]:
+        return Success(await cb(self._held))
+
     def map_err(self, cb: Callable[[E], F]) -> Result[T, F]:
+        return Success(self._held)
+
+    async def map_err_async(self, cb: Callable[[E], Awaitable[F]]) -> Result[T, F]:
         return Success(self._held)
 
     def map_or(self, default: U, cb: Callable[[T], U]) -> U:
         return cb(self._held)
 
+    async def map_or_async(self, default: U, cb: Callable[[T], Awaitable[U]]) -> U:
+        return await cb(self._held)
+
     def map_or_else(self, default: Callable[[], U], cb: Callable[[T], U]) -> U:
         return cb(self._held)
+
+    async def map_or_else_async(
+            self, default: Callable[[], Awaitable[U]], cb: Callable[[T], Awaitable[U]]) -> U:
+        return await cb(self._held)
 
     def and_then(self, cb: Callable[[T], Result[U, E]]) -> Result[U, E]:
         return cb(self._held)
 
+    async def and_then_async(self, cb: Callable[[T], Awaitable[Result[U, E]]]) -> Result[U, E]:
+        return await cb(self._held)
+
     def or_else(self, cb: Callable[[E], Result[T, F]]) -> Result[T, F]:
+        return Success(self._held)
+
+    async def or_else_async(self, cb: Callable[[E], Awaitable[Result[T, F]]]) -> Result[T, F]:
         return Success(self._held)
 
     def err(self) -> Maybe[E]:
@@ -344,6 +512,33 @@ def wrap_result(catch: type[Exception] | tuple[type[Exception], ...] = Exception
     return wrapper
 
 
+def wrap_result_async(catch: type[Exception] | tuple[type[Exception], ...] = Exception
+                      ) -> Callable[[Callable[P, Awaitable[R]]],
+                                     Callable[P, Awaitable[Result[R, Exception]]]]:
+    """Decorator for wrapping throwing functions to return a Result instead
+
+    This is meant for simple cases only, if you wish to have more complex error
+    handling than simply catching all exceptions and putting them in the Result
+    you will need to handle that yourself.
+
+    :param f: A callable to wrap
+    :param catch: A Exeption or tuple of Exceptions to catch, defaults to Exception
+    :return: A result of T or the caught Exception(s) as E
+    """
+
+    def wrapper(f: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[Result[R, Exception]]]:
+        @wraps(f)
+        async def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, Exception]:
+            try:
+                return Success(await f(*args, **kwargs))
+            except catch as e:  # pylint: disable=broad-exception-caught
+                return Error(e)
+
+        return inner
+
+    return wrapper
+
+
 def unwrap_result(f: Callable[P, Result[R, E]]) -> Callable[P, R]:
     """Decorator for unwrapping Result returning functions, return the result or
     throwing the Exception.
@@ -371,6 +566,33 @@ def unwrap_result(f: Callable[P, Result[R, E]]) -> Callable[P, R]:
     return inner
 
 
+def unwrap_result_async(f: Callable[P, Awaitable[Result[R, E]]]) -> Callable[P, Awaitable[R]]:
+    """Decorator for unwrapping Result returning functions, return the result or
+    throwing the Exception.
+
+    This is meant for simple cases only, if you wish to have more complex error
+    handling than simply catching all exceptions and putting them in the Result
+    you will need to handle that yourself.
+
+    :param f: A callable to unwrap
+    :raises ErrorWrapper: if E is not an Exception type
+    :raises E: any values of E that Exceptions
+    :return: the value of a Success
+    """
+
+    @wraps(f)
+    async def inner(*args: P.args, **kwargs: P.kwargs) -> R:
+        result = await f(*args, **kwargs)
+        if result.is_ok():
+            return result.unwrap()
+        err = result.unwrap_err()
+        if isinstance(err, Exception):
+            raise err
+        raise ErrorWrapper(err)
+
+    return inner
+
+
 def stop(f: Callable[P, R]) -> Callable[P, Result[R, E]]:
     """Decorator for functions that use :meth:`Result.propagate`.
 
@@ -385,6 +607,40 @@ def stop(f: Callable[P, R]) -> Callable[P, Result[R, E]]:
     def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
         try:
             return Success(f(*args, **kwargs))
+        except Propagation as e:
+            return Error(e.err)
+
+    return inner
+
+
+def stop_async(f: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[Result[R, E]]]:
+    """Decorator for async functions that use :meth:`Result.propagate`.
+
+    This is required to catch the propagated Error, and ensure that it is
+    returned instead of continuing to go up the stack.
+
+    >>> async def g() -> Result[str, str]:
+    ...     return Error('err!')
+
+    >>> @stop_async
+    ... async def f() -> Result[int, str]:
+    ...     v = await g()
+    ...     v.propagate()
+    ...     x = v.map(int)
+    ...     return x.map(lambda x: x + 10).map_err(lambda e: 'got: ' + e)
+
+    >>> import asyncio
+    >>> asyncio.run(f())
+    Error('err!')
+
+    :param f: The async function to wrap
+    :return: The original function wrapped to handle Propagation Exceptions
+    """
+
+    @wraps(f)
+    async def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
+        try:
+            return Success(await f(*args, **kwargs))
         except Propagation as e:
             return Error(e.err)
 

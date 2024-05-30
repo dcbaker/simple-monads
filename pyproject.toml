@@ -27,6 +27,7 @@ keywords = [
 [project.optional-dependencies]
 test = [
   "pytest",
+  "pytest-asyncio",
   "mypy",
   "pylint",
 ]

@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: MIT
-# Copyright © 2023 Dylan Baker
+# Copyright © 2023-2024 Dylan Baker
 
 """An implementation of an Option type."""
 
 from __future__ import annotations
 from functools import wraps
-from typing import TYPE_CHECKING, TypeVar, ParamSpec, Generic, Callable
+from typing import TYPE_CHECKING, TypeVar, ParamSpec, Generic, Callable, Awaitable
 from dataclasses import dataclass
 
 if TYPE_CHECKING:
@@ -24,7 +24,9 @@ __all__ = [
     'Something',
     'maybe',
     'unwrap_maybe',
+    'unwrap_maybe_async',
     'wrap_maybe',
+    'wrap_maybe_async',
 ]
 
 
@@ -98,6 +100,25 @@ class Maybe(Generic[T]):
         """
         raise NotImplementedError()
 
+    async def map_async(self, cb: Callable[[T], Awaitable[U]]) -> Maybe[U]:
+        """Transforms the held value using the callback asynchronously.
+
+        If this Maybe is Nothing, then Nothing is returned
+
+        >>> import asyncio
+        >>> async def foo(a: int) -> str:
+        ...     return str(a)
+        >>> asyncio.run(maybe(500).map_async(foo)).unwrap()
+        '500'
+        >>> asyncio.run(maybe(None).map_async(foo)).is_nothing()
+        True
+
+        :param cb: A callback transforming the held value from T to awaitable U
+        :return: A new Maybe holding the transformed value
+        """
+        raise NotImplementedError()
+
+
     def map_or(self, cb: Callable[[T], U], fallback: U) -> Maybe[U]:
         """Transform the held value using the callback, or use the fallback
         value.
@@ -114,6 +135,26 @@ class Maybe(Generic[T]):
         """
         raise NotImplementedError()
 
+    async def map_or_async(self, cb: Callable[[T], Awaitable[U]], fallback: U) -> Maybe[U]:
+        """Transform the held value using the callback, or use the fallback
+        value asynchronously.
+
+        >>> import asyncio
+        >>> async def foo(a: int) -> str:
+        ...     return str(a)
+
+        >>> asyncio.run(maybe(500).map_or_async(foo, '0')).unwrap()
+        '500'
+
+        >>> asyncio.run(maybe(None).map_or_async(foo, '0')).unwrap()
+        '0'
+
+        :param cb: A callback which will transform Something[T] into Something[U]
+        :param fallback: A value to use for Nothing
+        :return: A Something containing the transformation or the fallback value
+        """
+        raise NotImplementedError()
+
     def map_or_else(self, cb: Callable[[T], U], fallback: Callable[[], U]) -> Maybe[U]:
         """Transform the held value using the callback, or use the fallback
         value.
@@ -122,6 +163,29 @@ class Maybe(Generic[T]):
         '500'
 
         >>> maybe(None).map_or_else(str, lambda: '0').unwrap()
+        '0'
+
+        :param cb: A callback which will transform Something[T] into Something[U]
+        :param fallback: callable returning a value U
+        :return: A Something containing the transformation or the fallback value
+        """
+        raise NotImplementedError()
+
+    async def map_or_else_async(self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:
+        """Transform the held value using the callback, or use the fallback
+        value asynchronously.
+
+        >>> import asyncio
+        >>> async def fb() -> str:
+        ...     return '0'
+
+        >>> async def cb(v: int) -> str:
+        ...     return str(v)
+
+        >>> asyncio.run(maybe(500).map_or_else_async(cb, fb)).unwrap()
+        '500'
+
+        >>> asyncio.run(maybe(None).map_or_else_async(cb, fb)).unwrap()
         '0'
 
         :param cb: A callback which will transform Something[T] into Something[U]
@@ -199,11 +263,43 @@ class Maybe(Generic[T]):
         """
         raise NotImplementedError()
 
+    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[T]]) -> T:
+        """Get the value or call the fallback to get a value
+
+        >>> import asyncio
+        >>> async def fb():
+        ...     return 0
+
+        >>> asyncio.run(maybe(500).unwrap_or_else_async(fb))
+        500
+
+        >>> asyncio.run(maybe(None).unwrap_or_else_async(fb))
+        0
+
+        :param fallback: An async callable returning a type T
+        :return: The held value or the fallback
+        """
+        raise NotImplementedError()
+
     def and_then(self, cb: Callable[[T], Maybe[U]]) -> Maybe[U]:
         """Run a callback on the value if it is Something
 
         >>> maybe(500).and_then(lambda x: maybe(0)).unwrap()
         0
+
+        :param cb: A callback to run on the held value or Something()
+        :return: A Maybe[U] with the result of the callback or nothing
+        """
+        raise NotImplementedError()
+
+    async def and_then_async(self, cb: Callable[[T], Awaitable[Maybe[U]]]) -> Maybe[U]:
+        """Run a callback on the value if it is Something
+
+        >>> import asyncio
+        >>> async def cb(v: int):
+        ...     return Something(str(v))
+        >>> asyncio.run(maybe(500).and_then_async(cb)).unwrap()
+        '500'
 
         :param cb: A callback to run on the held value or Something()
         :return: A Maybe[U] with the result of the callback or nothing
@@ -220,6 +316,25 @@ class Maybe(Generic[T]):
         100
 
         :param fallback: A callback to run if this is Nothing returning a
+            Maybe[T]
+        :return: A Maybe[T], which is self unchanged if this Something,
+            otherwise the result of fallback
+        """
+        raise NotImplementedError()
+
+    async def or_else_async(self, fallback: Callable[[], Awaitable[Maybe[T]]]) -> Maybe[T]:
+        """Run a callback to get a value if this is Nothing or return self.
+
+        >>> import asyncio
+        >>> async def cb():
+        ...     return maybe(100)
+        >>> asyncio.run(maybe(500).or_else_async(cb)).unwrap()
+        500
+
+        >>> asyncio.run(maybe(None).or_else_async(cb)).unwrap()
+        100
+
+        :param fallback: An async callback to run if this is Nothing returning a
             Maybe[T]
         :return: A Maybe[T], which is self unchanged if this Something,
             otherwise the result of fallback
@@ -260,6 +375,27 @@ class Maybe(Generic[T]):
         """
         raise NotImplementedError()
 
+    async def ok_or_else_async(self, err: Callable[[], Awaitable[E]]) -> Result[T, E]:
+        """Convert this Option to a Result asynchronously.
+
+        If the Option is Something, that will be placed in the Success value,
+        otherwise the Error value of E will be used.
+
+        >>> import asyncio
+        >>> async def cb():
+        ...     return "WHAT!"
+        >>> asyncio.run(maybe(0).ok_or_else_async(cb)).unwrap()
+        0
+
+        >>> asyncio.run(maybe(None).ok_or_else_async(cb)).unwrap_err()
+        'WHAT!'
+
+        :param err: An async callable returning a type E
+        :return: A result with the held value as a Success or an Error
+        """
+        raise NotImplementedError()
+
+
 
 @dataclass(slots=True, frozen=True)
 class Something(Maybe[T]):
@@ -285,11 +421,20 @@ class Something(Maybe[T]):
     def map(self, cb: Callable[[T], U]) -> Maybe[U]:
         return Something(cb(self._held))
 
+    async def map_async(self, cb: Callable[[T], Awaitable[U]]) -> Maybe[U]:
+        return Something(await cb(self._held))
+
     def map_or(self, cb: Callable[[T], U], fallback: U) -> Maybe[U]:
         return Something(cb(self._held))
 
+    async def map_or_async(self, cb: Callable[[T], Awaitable[U]], fallback: U) -> Maybe[U]:
+        return Something(await cb(self._held))
+
     def map_or_else(self, cb: Callable[[T], U], fallback: Callable[[], U]) -> Maybe[U]:
         return Something(cb(self._held))
+
+    async def map_or_else_async(self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:
+        return Something(await cb(self._held))
 
     def get(self, fallback: T | None = None) -> T | None:
         return self._held
@@ -303,10 +448,19 @@ class Something(Maybe[T]):
     def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
         return self._held
 
+    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[T]]) -> T:
+        return self._held
+
     def and_then(self, cb: Callable[[T], Maybe[U]]) -> Maybe[U]:
         return cb(self._held)
 
+    async def and_then_async(self, cb: Callable[[T], Awaitable[Maybe[U]]]) -> Maybe[U]:
+        return await cb(self._held)
+
     def or_else(self, fallback: Callable[[], Maybe[T]]) -> Maybe[T]:
+        return self
+
+    async def or_else_async(self, fallback: Callable[[], Awaitable[Maybe[T]]]) -> Maybe[T]:
         return self
 
     def ok_or(self, err: E) -> Result[T, E]:
@@ -314,6 +468,10 @@ class Something(Maybe[T]):
         return Success(self._held)
 
     def ok_or_else(self, err: Callable[[], E]) -> Result[T, E]:
+        from .result import Success  # pylint: disable=import-outside-toplevel
+        return Success(self._held)
+
+    async def ok_or_else_async(self, err: Callable[[], Awaitable[E]]) -> Result[T, E]:
         from .result import Success  # pylint: disable=import-outside-toplevel
         return Success(self._held)
 
@@ -337,11 +495,20 @@ class Nothing(Maybe[T]):
     def map(self, cb: Callable[[T], U]) -> Maybe[U]:
         return Nothing()
 
+    async def map_async(self, cb: Callable[[T], Awaitable[U]]) -> Maybe[U]:
+        return Nothing()
+
     def map_or(self, cb: Callable[[T], U], fallback: U) -> Maybe[U]:
+        return Something(fallback)
+
+    async def map_or_async(self, cb: Callable[[T], Awaitable[U]], fallback: U) -> Maybe[U]:
         return Something(fallback)
 
     def map_or_else(self, cb: Callable[[T], U], fallback: Callable[[], U]) -> Maybe[U]:
         return Something(fallback())
+
+    async def map_or_else_async(self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:
+        return Something(await fallback())
 
     def get(self, fallback: T | None = None) -> T | None:
         return fallback
@@ -357,19 +524,32 @@ class Nothing(Maybe[T]):
     def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
         return fallback()
 
+    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[T]]) -> T:
+        return await fallback()
+
     def and_then(self, cb: Callable[[T], Maybe[U]]) -> Maybe[U]:
+        return Nothing()
+
+    async def and_then_async(self, cb: Callable[[T], Awaitable[Maybe[U]]]) -> Maybe[U]:
         return Nothing()
 
     def or_else(self, fallback: Callable[[], Maybe[T]]) -> Maybe[T]:
         return fallback()
 
+    async def or_else_async(self, fallback: Callable[[], Awaitable[Maybe[T]]]) -> Maybe[T]:
+        return await fallback()
+
     def ok_or(self, err: E) -> Result[T, E]:
         from .result import Error  # pylint: disable=import-outside-toplevel
-        return  Error(err)
+        return Error(err)
 
     def ok_or_else(self, err: Callable[[], E]) -> Result[T, E]:
         from .result import Error  # pylint: disable=import-outside-toplevel
-        return  Error(err())
+        return Error(err())
+
+    async def ok_or_else_async(self, err: Callable[[], Awaitable[E]]) -> Result[T, E]:
+        from .result import Error  # pylint: disable=import-outside-toplevel
+        return Error(await err())
 
 
 def maybe(result: T | None) -> Maybe[T]:
@@ -392,8 +572,38 @@ def maybe(result: T | None) -> Maybe[T]:
     return Something(result)
 
 
-def wrap_maybe(f: Callable[P, R | None]) -> Callable[P, Maybe[R]]:
+def wrap_maybe_async(f: Callable[P, Awaitable[R | None]]) -> Callable[P, Awaitable[Maybe[R]]]:
+    """Decorator (or wrapper) for asynchronous python code.
 
+    Converts code returning Awaitable[T | None] to return Awaitable[Maybe[T]]
+
+    >>> import asyncio
+
+    >>> @wrap_maybe_async
+    ... async def func(arg: bool) -> str | None:
+    ...     if arg:
+    ...         return "yes!"
+    ...     return None
+    ...
+    >>> asyncio.run(func(True))
+    Something('yes!')
+
+    >>> asyncio.run(func(False))
+    Nothing()
+
+    :param f: An async callable returning a type R or None
+    :return: A new async callable return :class:`Maybe[R]`, where a non-null are
+        :class:`Success`, and None is :class:`Nothing`
+    """
+
+    @wraps(f)
+    async def inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
+        return maybe(await f(*args, **kwargs))
+
+    return inner
+
+
+def wrap_maybe(f: Callable[P, R | None]) -> Callable[P, Maybe[R]]:
     """Decorator (or wrapper) for common python code.
 
     Converts code returning T | None to return Maybe[T]
@@ -423,6 +633,42 @@ def wrap_maybe(f: Callable[P, R | None]) -> Callable[P, Maybe[R]]:
     @wraps(f)
     def inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
         return maybe(f(*args, **kwargs))
+
+    return inner
+
+
+def unwrap_maybe_async(f: Callable[P, Awaitable[Maybe[R]]]) -> Callable[P, Awaitable[R | None]]:
+    """Decorator (or wrapper) to convert back to common asynchronous Python.
+
+    Converts code returning Awaitable[Maybe[T]] to Awaitable[T | None].
+
+    This is meant to ease transitioning a codebase to using simple_monads, but
+    allowing code to internally use Maybe, but return common Python Optional
+
+    >>> import asyncio
+    >>> async def raw(arg: str) -> Maybe[str]:
+    ...     if arg:
+    ...         return Something(arg)
+    ...     return Nothing()
+
+    >>> f = unwrap_maybe_async(raw)
+    >>> asyncio.run(f("foo"))
+    'foo'
+
+    >>> @unwrap_maybe_async
+    ... async def g(arg: str) -> str | None:
+    ...     return await raw(arg)
+
+    >>> asyncio.run(g("foo"))
+    'foo'
+
+    :param f: An async callable returning a :class:`Maybe[T]`
+    :return: A new async callable returning a `T | None`
+    """
+
+    @wraps(f)
+    async def inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
+        return (await f(*args, **kwargs)).get()
 
     return inner
 

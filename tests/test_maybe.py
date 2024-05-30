@@ -1,12 +1,15 @@
 # SPDX-License-Identifier: MIT
-# Copyright © 2023 Dylan Baker
+# Copyright © 2023-2024 Dylan Baker
 
 from __future__ import annotations
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
 from simple_monads.maybe import *
+
+if TYPE_CHECKING:
+    from typing import Awaitable, Callable
 
 
 class TestMaybe:
@@ -21,6 +24,22 @@ class TestMaybe:
             s = Nothing().map(str)
             assert s == Nothing()
 
+    class TestMapAsync:
+
+        @staticmethod
+        async def _helper(v: int) -> str:
+            return str(v)
+
+        @pytest.mark.asyncio
+        async def test_something(self) -> None:
+            s = await Something(1).map_async(self._helper)
+            assert s == Something('1')
+
+        @pytest.mark.asyncio
+        async def test_nothing(self) -> None:
+            s = await Nothing().map_async(self._helper)
+            assert s == Nothing()
+
     class TestMapOr:
 
         def test_something(self) -> None:
@@ -29,6 +48,22 @@ class TestMaybe:
         def test_nothing(self) -> None:
             assert Nothing().map_or(str, '2') == Something('2')
 
+    class TestMapOrAsync:
+
+        @staticmethod
+        async def _helper(v: int) -> str:
+            return str(v)
+
+        @pytest.mark.asyncio
+        async def test_something(self) -> None:
+            s = await Something(1).map_or_async(self._helper, '5')
+            assert s == Something('1')
+
+        @pytest.mark.asyncio
+        async def test_nothing(self) -> None:
+            s = await Nothing().map_or_async(self._helper, '5')
+            assert s == Something('5')
+
     class TestMapOrElse:
 
         def test_something(self) -> None:
@@ -36,6 +71,24 @@ class TestMaybe:
 
         def test_nothing(self) -> None:
             assert Nothing().map_or_else(str, lambda: '2') == Something('2')
+
+    class TestMapOrElseAsync:
+
+        @staticmethod
+        async def _cb(v: int) -> str:
+            return str(v)
+
+        @staticmethod
+        async def _fb() -> str:
+            return '2'
+
+        @pytest.mark.asyncio
+        async def test_something(self) -> None:
+            assert await Something(1).map_or_else_async(self._cb, self._fb) == Something('1')
+
+        @pytest.mark.asyncio
+        async def test_nothing(self) -> None:
+            assert await Nothing().map_or_else_async(self._cb, self._fb) == Something('2')
 
     class TestGet:
 
@@ -94,6 +147,24 @@ class TestMaybe:
         def test_nothing(self) -> None:
             assert cast('Nothing[str]', Nothing()).unwrap_or_else(lambda: 'bar') == 'bar'
 
+    class TestUnwrapOrElseAsync:
+
+        @pytest.mark.asyncio
+        async def test_something(self) -> None:
+            async def cb() -> str:
+                return 'bar'
+
+            v = await Something('foo').unwrap_or_else_async(cb)
+            assert v == 'foo'
+
+        @pytest.mark.asyncio
+        async def test_nothing(self) -> None:
+            async def cb() -> str:
+                return 'bar'
+
+            v = await cast('Nothing[str]', Nothing()).unwrap_or_else_async(cb)
+            assert v == 'bar'
+
     class TestBool:
 
         def test_something(self) -> None:
@@ -121,6 +192,24 @@ class TestMaybe:
         def test_nothing(self) -> None:
             assert Nothing().and_then(self.to_int) == Nothing()
 
+    class TestAndThenAsync:
+
+        @pytest.mark.asyncio
+        async def test_something(self) -> None:
+            async def f(v: int) -> Maybe[str]:
+                return Something(str(v))
+
+            v = await Something(1).and_then_async(f)
+            assert v.unwrap() == '1'
+
+        @pytest.mark.asyncio
+        async def test_nothing(self) -> None:
+            async def f(v: int) -> Maybe[str]:
+                pytest.fail()
+
+            v = await Nothing().and_then_async(f)
+            assert v == Nothing()
+
     class TestOrElse:
 
         def test_something(self) -> None:
@@ -128,6 +217,24 @@ class TestMaybe:
 
         def test_nothing(self) -> None:
             cast('Nothing[str]', Nothing()).or_else(lambda: maybe('bar')) == Something('bar')
+
+    class TestOrElseAsync:
+
+        @pytest.mark.asyncio
+        async def test_something(self) -> None:
+            async def cb() -> Maybe[str]:
+                return maybe('bar')
+
+            v = await Something('foo').or_else_async(cb)
+            assert v == Something('foo')
+
+        @pytest.mark.asyncio
+        async def test_nothing(self) -> None:
+            async def cb() -> Maybe[str]:
+                return maybe('bar')
+
+            v = await cast('Nothing[str]', Nothing()).or_else_async(cb)
+            assert v == Something('bar')
 
     class TestOkOr:
 
@@ -144,6 +251,24 @@ class TestMaybe:
 
         def test_nothing(self) -> None:
             cast('Nothing[str]', Nothing()).ok_or_else(lambda: 'bar').unwrap_err() == 'bar'
+
+    class TestOkOrElseAsync:
+
+        @pytest.mark.asyncio
+        async def test_something(self) -> None:
+            async def cb() -> str:
+                return 'bar'
+
+            v = await Something('foo').ok_or_else_async(cb)
+            assert v.unwrap() == 'foo'
+
+        @pytest.mark.asyncio
+        async def test_nothing(self) -> None:
+            async def cb() -> str:
+                return 'bar'
+
+            v = await cast('Nothing[str]', Nothing()).ok_or_else_async(cb)
+            assert v.unwrap_err() == 'bar'
 
     class TestMatch:
 
@@ -197,6 +322,25 @@ class TestMaybeWrap:
         assert helper() == Nothing()
 
 
+class TestMaybeWrapAsync:
+
+    @pytest.mark.asyncio
+    async def test_something(self) -> None:
+        @wrap_maybe_async
+        async def helper() -> str:
+            return 'foo'
+
+        assert await helper() == Something('foo')
+
+    @pytest.mark.asyncio
+    async def test_nothing(self) -> None:
+        @wrap_maybe_async
+        async def helper() -> None:
+            return None
+
+        assert await helper() == Nothing()
+
+
 class TestMaybeUnwrap:
 
     def test_something(self) -> None:
@@ -212,3 +356,22 @@ class TestMaybeUnwrap:
             return Nothing()
 
         assert helper() is None
+
+
+class TestMaybeUnwrapASync:
+
+    @pytest.mark.asyncio
+    async def test_something(self) -> None:
+        @unwrap_maybe_async
+        async def helper() -> Maybe[str]:
+            return Something('foo')
+
+        assert await helper() == 'foo'
+
+    @pytest.mark.asyncio
+    async def test_nothing(self) -> None:
+        @unwrap_maybe_async
+        async def helper() -> Maybe[str]:
+            return Nothing()
+
+        assert await helper() is None

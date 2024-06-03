@@ -180,7 +180,7 @@ class Result(Generic[T, E]):
         ...     return x == 'foo'
         ...
         >>> func()
-        Error(_held=5)
+        Error(5)
         """
         raise NotImplementedError()
 
@@ -194,6 +194,9 @@ class Error(Result[T, E]):
 
     def __bool__(self) -> bool:
         return False
+
+    def __repr__(self) -> str:
+        return f'Error({self._held!r})'
 
     @staticmethod
     def is_ok() -> bool:
@@ -256,8 +259,12 @@ class Success(Result[T, E]):
     """A Result holding an value."""
 
     _held: T
+
     def __bool__(self) -> bool:
         return True
+
+    def __repr__(self) -> str:
+        return f'Success({self._held!r})'
 
     @staticmethod
     def is_ok() -> bool:

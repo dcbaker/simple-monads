@@ -421,7 +421,7 @@ class TestUnwrapResultAsync:
             await foo()
 
 
-class TestPpropgate:
+class TestPropagate:
 
     def test_prop(self) -> None:
 
@@ -444,7 +444,7 @@ class TestPpropgate:
         assert inner() == Success('foobar')
 
 
-class TestPropogateAsync:
+class TestPropagateAsync:
 
     @pytest.mark.asyncio
     async def test_prop(self) -> None:

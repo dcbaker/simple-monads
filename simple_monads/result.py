@@ -593,11 +593,24 @@ def unwrap_result_async(f: Callable[P, Awaitable[Result[R, E]]]) -> Callable[P, 
     return inner
 
 
-def stop(f: Callable[P, Awaitable[Result[R, E]]]) -> Callable[P, Result[R, E]]:
+def stop(f: Callable[P, Result[R, E]]) -> Callable[P, Result[R, E]]:
     """Decorator for functions that use :meth:`Result.propagate`.
 
     This is required to catch the propagated Error, and ensure that it is
     returned instead of continuing to go up the stack.
+
+    >>> def g() -> Result[str, str]:
+    ...     return Error('err!')
+
+    >>> @stop
+    ... def f() -> Result[int, str]:
+    ...     v = g()
+    ...     v.propagate()
+    ...     x = v.map(int)
+    ...     return x.map(lambda x: x + 10).map_err(lambda e: 'got: ' + e)
+
+    >>> f()
+    Error('err!')
 
     :param f: The function to wrap
     :return: The original function wrapped to handle Propagation Exceptions

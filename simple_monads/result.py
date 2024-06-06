@@ -593,7 +593,7 @@ def unwrap_result_async(f: Callable[P, Awaitable[Result[R, E]]]) -> Callable[P, 
     return inner
 
 
-def stop(f: Callable[P, R]) -> Callable[P, Result[R, E]]:
+def stop(f: Callable[P, Awaitable[Result[R, E]]]) -> Callable[P, Result[R, E]]:
     """Decorator for functions that use :meth:`Result.propagate`.
 
     This is required to catch the propagated Error, and ensure that it is
@@ -606,14 +606,14 @@ def stop(f: Callable[P, R]) -> Callable[P, Result[R, E]]:
     @wraps(f)
     def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
         try:
-            return Success(f(*args, **kwargs))
+            return f(*args, **kwargs)
         except Propagation as e:
             return Error(e.err)
 
     return inner
 
 
-def stop_async(f: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[Result[R, E]]]:
+def stop_async(f: Callable[P, Awaitable[Result[R, E]]]) -> Callable[P, Awaitable[Result[R, E]]]:
     """Decorator for async functions that use :meth:`Result.propagate`.
 
     This is required to catch the propagated Error, and ensure that it is
@@ -640,7 +640,7 @@ def stop_async(f: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[Result[R, 
     @wraps(f)
     async def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
         try:
-            return Success(await f(*args, **kwargs))
+            return await f(*args, **kwargs)
         except Propagation as e:
             return Error(e.err)
 

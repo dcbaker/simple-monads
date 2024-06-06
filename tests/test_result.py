@@ -426,20 +426,20 @@ class TestPropagate:
     def test_prop(self) -> None:
 
         @stop
-        def inner() -> str:
+        def inner() -> Result[str, int]:
             r: Result[str, int] = Error(4)
             x = r.propagate()
-            return x + 'bar'
+            return Success(x + 'bar')
 
         assert inner() == Error(4)
 
     def test_no_prop(self) -> None:
 
         @stop
-        def inner() -> str:
+        def inner() -> Result[str, int]:
             r: Result[str, int] = Success('foo')
             x = r.propagate()
-            return x + 'bar'
+            return Success(x + 'bar')
 
         assert inner() == Success('foobar')
 
@@ -449,19 +449,19 @@ class TestPropagateAsync:
     @pytest.mark.asyncio
     async def test_prop(self) -> None:
         @stop_async
-        async def inner() -> str:
+        async def inner() -> Result[str, int]:
             r: Result[str, int] = Error(4)
             x = r.propagate()
-            return x + 'bar'
+            return Success(x + 'bar')
 
         assert await inner() == Error(4)
 
     @pytest.mark.asyncio
     async def test_no_prop(self) -> None:
         @stop_async
-        async def inner() -> str:
+        async def inner() -> Result[str, int]:
             r: Result[str, int] = Success('foo')
             x = r.propagate()
-            return x + 'bar'
+            return Success(x + 'bar')
 
         assert await inner() == Success('foobar')

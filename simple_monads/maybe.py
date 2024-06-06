@@ -25,11 +25,21 @@ __all__ = [
     'Nothing',
     'Something',
     'maybe',
+    'stop',
+    'stop_async',
     'unwrap_maybe',
     'unwrap_maybe_async',
     'wrap_maybe',
     'wrap_maybe_async',
 ]
+
+
+class Propagation(Exception):
+    """Uses exception handling to propagate up."""
+
+    def __init__(self) -> None:
+        super().__init__('Uncaught Propagation, did you forget to decorate '
+                         'function with @simple_monads.maybe.stop?')
 
 
 class EmptyMaybeError(Exception):
@@ -398,6 +408,26 @@ class Maybe(Generic[T]):
         """
         raise NotImplementedError()
 
+    def propagate(self) -> T:
+        """Get the value, or propagate an error up the stack.
+
+        This is achieved by throwing a special Exception, which is caught using
+        the :func:`stop` decorator. This is ugly and an abuse of Exceptions,
+        (control flow through Exceptions, which is bad, m'kay?). However, this
+        is the only obvious portable way to implement this in Python.
+
+        :return: The held value of a Success
+
+        >>> @stop
+        ... def func() -> Maybe[str]:
+        ...     r: Maybe[str] = Nothing()
+        ...     x = r.propagate()  # is now str, or thrown
+        ...     return x == 'foo'
+
+        >>> func()
+        Nothing()
+        """
+        raise NotImplementedError()
 
 
 @dataclass(slots=True, frozen=True)
@@ -479,6 +509,9 @@ class Something(Maybe[T]):
         from .result import Success  # pylint: disable=import-outside-toplevel
         return Success(self._held)
 
+    def propagate(self) -> T:
+        return self._held
+
 
 @dataclass(slots=True, frozen=True)
 class Nothing(Maybe[T]):
@@ -555,6 +588,9 @@ class Nothing(Maybe[T]):
     async def ok_or_else_async(self, err: Callable[[], Awaitable[E]]) -> Result[T, E]:
         from .result import Error  # pylint: disable=import-outside-toplevel
         return Error(await err())
+
+    def propagate(self) -> T:
+        raise Propagation()
 
 
 def maybe(result: T | None) -> Maybe[T]:
@@ -710,5 +746,71 @@ def unwrap_maybe(f: Callable[P, Maybe[R]]) -> Callable[P, R | None]:
     @wraps(f)
     def inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
         return f(*args, **kwargs).get()
+
+    return inner
+
+
+def stop(f: Callable[P, Maybe[R]]) -> Callable[P, Maybe[R]]:
+    """Decorator for functions that use :meth:`Maybe.propagate`.
+
+    This is required to catch the propagated Error, and ensure that it is
+    returned instead of continuing to go up the stack.
+
+    >>> def g() -> Maybe[str]:
+    ...     return Nothing()
+
+    >>> @stop
+    ... def f() -> Maybe[int]:
+    ...     v = g()
+    ...     v.propagate()
+    ...     return v.map(int)
+
+    >>> f()
+    Nothing()
+
+    :param f: The function to wrap
+    :return: The original function wrapped to handle Propagation Exceptions
+    """
+
+    @wraps(f)
+    def inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
+        try:
+            return f(*args, **kwargs)
+        except Propagation:
+            return Nothing()
+
+    return inner
+
+
+def stop_async(f: Callable[P, Awaitable[Maybe[R]]]) -> Callable[P, Awaitable[Maybe[R]]]:
+    """Decorator for async functions that use :meth:`Result.propagate`.
+
+    This is required to catch the propagated Error, and ensure that it is
+    returned instead of continuing to go up the stack.
+
+    >>> async def g() -> Maybe[str]:
+    ...     return Nothing()
+
+    >>> @stop_async
+    ... async def f() -> Result[int, str]:
+    ...     v = await g()
+    ...     v.propagate()
+    ...     x = v.map(int)
+    ...     return x
+
+    >>> import asyncio
+    >>> asyncio.run(f())
+    Nothing()
+
+    :param f: The async function to wrap
+    :return: The original function wrapped to handle Propagation Exceptions
+    """
+
+    @wraps(f)
+    async def inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
+        try:
+            return await f(*args, **kwargs)
+        except Propagation:
+            return Nothing()
 
     return inner

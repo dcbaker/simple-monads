@@ -375,3 +375,49 @@ class TestMaybeUnwrapASync:
             return Nothing()
 
         assert await helper() is None
+
+
+class TestPropagate:
+
+    def test_prop(self) -> None:
+
+        @stop
+        def inner() -> Maybe[str]:
+            r: Maybe[str] = Nothing()
+            x = r.propagate()
+            return Something(x + 'bar')
+
+        assert inner() == Nothing()
+
+    def test_no_prop(self) -> None:
+
+        @stop
+        def inner() -> Maybe[str]:
+            r: Maybe[str] = Something('foo')
+            x = r.propagate()
+            return Something(x + 'bar')
+
+        assert inner() == Something('foobar')
+
+
+class TestPropagateAsync:
+
+    @pytest.mark.asyncio
+    async def test_prop(self) -> None:
+        @stop_async
+        async def inner() -> Maybe[str]:
+            r: Maybe[str] = Nothing()
+            x = r.propagate()
+            return Something(x + 'bar')
+
+        assert await inner() == Nothing()
+
+    @pytest.mark.asyncio
+    async def test_no_prop(self) -> None:
+        @stop_async
+        async def inner() -> Maybe[str]:
+            r: Maybe[str] = Something('foo')
+            x = r.propagate()
+            return Something(x + 'bar')
+
+        assert await inner() == Something('foobar')

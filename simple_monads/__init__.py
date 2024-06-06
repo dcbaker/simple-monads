@@ -3,4 +3,4 @@
 
 """"Pure Python implementations of Algebraic Data Types."""
 
-__version__ = '0.0.2'
+__version__ = '0.0.3'

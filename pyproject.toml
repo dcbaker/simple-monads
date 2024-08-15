@@ -32,6 +32,9 @@ test = [
   "pylint",
 ]
 
+[project.urls]
+Source = "https://github.com/dcbaker/simple-monads"
+
 [tool.flit.module]
 name = "simple_monads"
 

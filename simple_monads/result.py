@@ -599,14 +599,14 @@ def stop(f: Callable[P, Result[R, E]]) -> Callable[P, Result[R, E]]:
     This is required to catch the propagated Error, and ensure that it is
     returned instead of continuing to go up the stack.
 
-    >>> def g() -> Result[str, str]:
-    ...     return Error('err!')
+    >>> @wrap_result
+    ... def h(v: str) -> Result[int, Exception]:
+    ...     return int(v)
 
     >>> @stop
     ... def f() -> Result[int, str]:
-    ...     v = g()
-    ...     v.propagate()
-    ...     x = v.map(int)
+    ...     v = Error('err!')
+    ...     x = h(v.propagate())
     ...     return x.map(lambda x: x + 10).map_err(lambda e: 'got: ' + e)
 
     >>> f()
@@ -632,14 +632,14 @@ def stop_async(f: Callable[P, Awaitable[Result[R, E]]]) -> Callable[P, Awaitable
     This is required to catch the propagated Error, and ensure that it is
     returned instead of continuing to go up the stack.
 
-    >>> async def g() -> Result[str, str]:
-    ...     return Error('err!')
+    >>> @wrap_result
+    ... def h(v: str) -> Result[int, Exception]:
+    ...     return int(v)
 
     >>> @stop_async
-    ... async def f() -> Result[int, str]:
-    ...     v = await g()
-    ...     v.propagate()
-    ...     x = v.map(int)
+    ... def f() -> Result[int, str]:
+    ...     v = Error('err!')
+    ...     x = h(v.propagate())
     ...     return x.map(lambda x: x + 10).map_err(lambda e: 'got: ' + e)
 
     >>> import asyncio

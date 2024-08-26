@@ -1,12 +1,25 @@
 # SPDX-License-Identifier: MIT
 # Copyright © 2023-2024 Dylan Baker
 
+# pylint: disable=C0115,C0116,C0104,W0719
+
 from __future__ import annotations
 from typing import cast
 
 import pytest
 
-from simple_monads.result import *
+from simple_monads.result import (
+    Error,
+    Result,
+    Success,
+    UnwrapError,
+    stop,
+    stop_async,
+    unwrap_result,
+    unwrap_result_async,
+    wrap_result,
+    wrap_result_async,
+)
 
 class TestResult:
 

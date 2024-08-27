@@ -1,16 +1,26 @@
 # SPDX-License-Identifier: MIT
 # Copyright © 2023-2024 Dylan Baker
 
+# pylint: disable=C0115,C0116,C0104,W0719
+
 from __future__ import annotations
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
 import pytest
 
-from simple_monads.maybe import *
-
-if TYPE_CHECKING:
-    from typing import Awaitable, Callable
-
+from simple_monads.maybe import (
+    EmptyMaybeError,
+    Maybe,
+    Nothing,
+    Something,
+    maybe,
+    stop,
+    stop_async,
+    unwrap_maybe,
+    unwrap_maybe_async,
+    wrap_maybe,
+    wrap_maybe_async,
+)
 
 class TestMaybe:
 
@@ -204,7 +214,7 @@ class TestMaybe:
 
         @pytest.mark.asyncio
         async def test_nothing(self) -> None:
-            async def f(v: int) -> Maybe[str]:
+            async def f(_: int) -> Maybe[str]:
                 pytest.fail()
 
             v = await Nothing().and_then_async(f)
@@ -213,10 +223,10 @@ class TestMaybe:
     class TestOrElse:
 
         def test_something(self) -> None:
-            Something('foo').or_else(lambda: maybe('bar')) == Something('foo')
+            _ = Something('foo').or_else(lambda: maybe('bar')) == Something('foo')
 
         def test_nothing(self) -> None:
-            cast('Nothing[str]', Nothing()).or_else(lambda: maybe('bar')) == Something('bar')
+            _ = cast('Nothing[str]', Nothing()).or_else(lambda: maybe('bar')) == Something('bar')
 
     class TestOrElseAsync:
 
@@ -239,18 +249,18 @@ class TestMaybe:
     class TestOkOr:
 
         def test_something(self) -> None:
-            Something('foo').ok_or('bar').unwrap() == 'foo'
+            _ = Something('foo').ok_or('bar').unwrap() == 'foo'
 
         def test_nothing(self) -> None:
-            cast('Nothing[str]', Nothing()).ok_or('bar').unwrap_err() == 'bar'
+            _ = cast('Nothing[str]', Nothing()).ok_or('bar').unwrap_err() == 'bar'
 
     class TestOkOrElse:
 
         def test_something(self) -> None:
-            Something('foo').ok_or_else(lambda: 'bar').unwrap() == 'foo'
+            _ = Something('foo').ok_or_else(lambda: 'bar').unwrap() == 'foo'
 
         def test_nothing(self) -> None:
-            cast('Nothing[str]', Nothing()).ok_or_else(lambda: 'bar').unwrap_err() == 'bar'
+            _ = cast('Nothing[str]', Nothing()).ok_or_else(lambda: 'bar').unwrap_err() == 'bar'
 
     class TestOkOrElseAsync:
 

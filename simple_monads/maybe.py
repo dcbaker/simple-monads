@@ -9,7 +9,7 @@ from functools import wraps
 from typing import TYPE_CHECKING, TypeVar, ParamSpec, Generic
 
 if TYPE_CHECKING:
-    from typing import Callable, Awaitable
+    from typing import Callable, Awaitable, Literal
 
     from .result import Result
 
@@ -444,11 +444,11 @@ class Something(Maybe[T]):
         return f"Something({self._held!r})"
 
     @staticmethod
-    def is_something() -> bool:
+    def is_something() -> Literal[True]:
         return True
 
     @staticmethod
-    def is_nothing() -> bool:
+    def is_nothing() -> Literal[False]:
         return False
 
     def map(self, cb: Callable[[T], U]) -> Maybe[U]:
@@ -522,11 +522,11 @@ class Nothing(Maybe[T]):
         return False
 
     @staticmethod
-    def is_something() -> bool:
+    def is_something() -> Literal[False]:
         return False
 
     @staticmethod
-    def is_nothing() -> bool:
+    def is_nothing() -> Literal[True]:
         return True
 
     def map(self, cb: Callable[[T], U]) -> Maybe[U]:

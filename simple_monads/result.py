@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, TypeVar, ParamSpec, Generic
 from dataclasses import dataclass
 
 if TYPE_CHECKING:
-    from typing import Awaitable, Callable
+    from typing import Awaitable, Callable, Literal
 
     from .maybe import Maybe
 
@@ -323,11 +323,11 @@ class Error(Result[T, E]):
         return f'Error({self._held!r})'
 
     @staticmethod
-    def is_ok() -> bool:
+    def is_ok() -> Literal[False]:
         return False
 
     @staticmethod
-    def is_err() -> bool:
+    def is_err() -> Literal[True]:
         return True
 
     def unwrap(self, msg: str | None = None) -> T:
@@ -413,11 +413,11 @@ class Success(Result[T, E]):
         return f'Success({self._held!r})'
 
     @staticmethod
-    def is_ok() -> bool:
+    def is_ok() -> Literal[True]:
         return True
 
     @staticmethod
-    def is_err() -> bool:
+    def is_err() -> Literal[False]:
         return False
 
     def unwrap(self, msg: str | None = None) -> T:

@@ -130,7 +130,6 @@ class Maybe(Generic[T]):
         """
         raise NotImplementedError()
 
-
     def map_or(self, cb: Callable[[T], U], fallback: U) -> Maybe[U]:
         """Transform the held value using the callback, or use the fallback
         value.

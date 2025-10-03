@@ -521,6 +521,9 @@ class Nothing(Maybe[T]):
     def __bool__(self) -> bool:
         return False
 
+    def __repr__(self) -> str:
+        return "Nothing()"
+
     @staticmethod
     def is_something() -> Literal[False]:
         return False

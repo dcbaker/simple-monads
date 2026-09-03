@@ -6,8 +6,14 @@ name: Python application
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - '**/*.py'
+      - 'pyproject.toml'
   pull_request:
     branches: [ "main" ]
+    paths:
+      - '**/*.py'
+      - 'pyproject.toml'
 
 permissions:
   contents: read

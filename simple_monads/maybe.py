@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright © 2023-2024 Dylan Baker
+# Copyright © 2023-2026 Dylan Baker
 
 """An implementation of an Option type."""
 
@@ -183,7 +183,7 @@ class Maybe(Generic[T]):
         raise NotImplementedError()
 
     async def map_or_else_async(
-            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:  # pylint: disable=line-too-long
+            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:  # noqa: E501
         """Transform the held value using the callback, or use the fallback
         value asynchronously.
 
@@ -466,7 +466,7 @@ class Something(Maybe[T]):
         return Something(cb(self._held))
 
     async def map_or_else_async(
-            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:  # pylint: disable=line-too-long
+            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:  # noqa: E501
         return Something(await cb(self._held))
 
     def get(self, fallback: T | None = None) -> T | None:
@@ -497,15 +497,15 @@ class Something(Maybe[T]):
         return self
 
     def ok_or(self, err: E) -> Result[T, E]:
-        from .result import Success  # pylint: disable=import-outside-toplevel
+        from .result import Success
         return Success(self._held)
 
     def ok_or_else(self, err: Callable[[], E]) -> Result[T, E]:
-        from .result import Success  # pylint: disable=import-outside-toplevel
+        from .result import Success
         return Success(self._held)
 
     async def ok_or_else_async(self, err: Callable[[], Awaitable[E]]) -> Result[T, E]:
-        from .result import Success  # pylint: disable=import-outside-toplevel
+        from .result import Success
         return Success(self._held)
 
     def propagate(self) -> T:
@@ -547,7 +547,7 @@ class Nothing(Maybe[T]):
         return Something(fallback())
 
     async def map_or_else_async(
-            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:  # pylint: disable=line-too-long
+            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:  # noqa: E501
         return Something(await fallback())
 
     def get(self, fallback: T | None = None) -> T | None:
@@ -580,15 +580,15 @@ class Nothing(Maybe[T]):
         return await fallback()
 
     def ok_or(self, err: E) -> Result[T, E]:
-        from .result import Error  # pylint: disable=import-outside-toplevel
+        from .result import Error
         return Error(err)
 
     def ok_or_else(self, err: Callable[[], E]) -> Result[T, E]:
-        from .result import Error  # pylint: disable=import-outside-toplevel
+        from .result import Error
         return Error(err())
 
     async def ok_or_else_async(self, err: Callable[[], Awaitable[E]]) -> Result[T, E]:
-        from .result import Error  # pylint: disable=import-outside-toplevel
+        from .result import Error
         return Error(await err())
 
     def propagate(self) -> T:

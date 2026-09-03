@@ -1,7 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright © 2023-2024 Dylan Baker
-
-# pylint: disable=C0115,C0116,C0104,W0719
+# Copyright © 2023-2026 Dylan Baker
 
 from __future__ import annotations
 from typing import cast

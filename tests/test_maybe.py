@@ -14,7 +14,6 @@ from simple_monads.maybe import (
     Something,
     maybe,
     stop,
-    stop_async,
     unwrap_maybe,
     unwrap_maybe_async,
     wrap_maybe,
@@ -409,12 +408,9 @@ class TestPropagate:
 
         assert inner() == Something('foobar')
 
-
-class TestPropagateAsync:
-
     @pytest.mark.asyncio
-    async def test_prop(self) -> None:
-        @stop_async
+    async def test_prop_async(self) -> None:
+        @stop
         async def inner() -> Maybe[str]:
             r: Maybe[str] = Nothing()
             x = r.propagate()
@@ -423,8 +419,8 @@ class TestPropagateAsync:
         assert await inner() == Nothing()
 
     @pytest.mark.asyncio
-    async def test_no_prop(self) -> None:
-        @stop_async
+    async def test_no_prop_async(self) -> None:
+        @stop
         async def inner() -> Maybe[str]:
             r: Maybe[str] = Something('foo')
             x = r.propagate()

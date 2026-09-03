@@ -334,10 +334,7 @@ class Error(Result[T, E]):
 
     def unwrap(self, msg: str | None = None) -> T:
         e: Exception
-        if isinstance(self._held, Exception):
-            e = self._held
-        else:
-            e = WrapError(self._held)
+        e = self._held if isinstance(self._held, Exception) else WrapError(self._held)
         raise UnwrapError(msg or 'Attempted to unwrap an Error') from e
 
     def unwrap_or(self, fallback: T) -> T:

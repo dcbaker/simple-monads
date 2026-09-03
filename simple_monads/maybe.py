@@ -10,7 +10,8 @@ from functools import wraps
 from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
 
 if TYPE_CHECKING:
-    from typing import Awaitable, Callable, Literal
+    from collections.abc import Awaitable, Callable
+    from typing import Literal
 
     from .result import Result
 

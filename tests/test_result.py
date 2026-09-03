@@ -2,6 +2,7 @@
 # Copyright © 2023-2026 Dylan Baker
 
 from __future__ import annotations
+
 from typing import cast
 
 import pytest
@@ -18,6 +19,7 @@ from simple_monads.result import (
     wrap_result,
     wrap_result_async,
 )
+
 
 class TestResult:
 

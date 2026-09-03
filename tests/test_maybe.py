@@ -2,6 +2,7 @@
 # Copyright © 2023-2026 Dylan Baker
 
 from __future__ import annotations
+
 from typing import cast
 
 import pytest
@@ -19,6 +20,7 @@ from simple_monads.maybe import (
     wrap_maybe,
     wrap_maybe_async,
 )
+
 
 class TestMaybe:
 

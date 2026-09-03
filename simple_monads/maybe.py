@@ -4,12 +4,13 @@
 """An implementation of an Option type."""
 
 from __future__ import annotations
+
 from dataclasses import dataclass
 from functools import wraps
-from typing import TYPE_CHECKING, TypeVar, ParamSpec, Generic
+from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
 
 if TYPE_CHECKING:
-    from typing import Callable, Awaitable, Literal
+    from typing import Awaitable, Callable, Literal
 
     from .result import Result
 

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright © 2023-2024 Dylan Baker
+# Copyright © 2023-2026 Dylan Baker
 
 """An implementation of a Result type."""
 
@@ -278,7 +278,7 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
-    def ok(self) -> Maybe[T]:  # pylint: disable=invalid-name
+    def ok(self) -> Maybe[T]:
         """Transform an Result[T, E] into a Maybe[T]
 
         A Success will be mapped to Something[T], while and Error becomes Nothing[T]
@@ -388,11 +388,11 @@ class Error(Result[T, E]):
         return await cb(self._held)
 
     def err(self) -> Maybe[E]:
-        from .maybe import Something  # pylint: disable=import-outside-toplevel
+        from .maybe import Something
         return Something(self._held)
 
     def ok(self) -> Maybe[T]:
-        from .maybe import Nothing  # pylint: disable=import-outside-toplevel
+        from .maybe import Nothing
         return Nothing()
 
     def propagate(self) -> T:
@@ -475,11 +475,11 @@ class Success(Result[T, E]):
         return Success(self._held)
 
     def err(self) -> Maybe[E]:
-        from .maybe import Nothing  # pylint: disable=import-outside-toplevel
+        from .maybe import Nothing
         return Nothing()
 
     def ok(self) -> Maybe[T]:
-        from .maybe import Something  # pylint: disable=import-outside-toplevel
+        from .maybe import Something
         return Something(self._held)
 
     def propagate(self) -> T:
@@ -504,7 +504,7 @@ def wrap_result(catch: type[Exception] | tuple[type[Exception], ...] = Exception
         def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, Exception]:
             try:
                 return Success(f(*args, **kwargs))
-            except catch as e:  # pylint: disable=broad-exception-caught
+            except catch as e:
                 return Error(e)
 
         return inner
@@ -531,7 +531,7 @@ def wrap_result_async(catch: type[Exception] | tuple[type[Exception], ...] = Exc
         async def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, Exception]:
             try:
                 return Success(await f(*args, **kwargs))
-            except catch as e:  # pylint: disable=broad-exception-caught
+            except catch as e:
                 return Error(e)
 
         return inner

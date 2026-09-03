@@ -36,7 +36,7 @@ __all__ = [
 ]
 
 
-class Propagation(Exception):
+class Propagation(Generic[E], Exception):  # noqa: N818
     """Uses exception handling to propagate up."""
 
     def __init__(self) -> None:

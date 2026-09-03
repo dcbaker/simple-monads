@@ -24,7 +24,7 @@ F = TypeVar('F')
 
 __all__ = [
     'Error',
-    'ErrorWrapper',
+    'WrapError',
     'Result',
     'Success',
     'UnwrapError',
@@ -41,11 +41,11 @@ class UnwrapError(Exception):
     """Error thrown when unwrapping is invalid."""
 
 
-class ErrorWrapper(Exception):
+class WrapError(Exception):
     """wraps non Exception Errors"""
 
 
-class Propagation(Generic[E], Exception):
+class Propagation(Generic[E], Exception):  # noqa: N818
     """Uses exception handling to propagate up."""
 
     def __init__(self, err: E) -> None:
@@ -337,7 +337,7 @@ class Error(Result[T, E]):
         if isinstance(self._held, Exception):
             e = self._held
         else:
-            e = ErrorWrapper(self._held)
+            e = WrapError(self._held)
         raise UnwrapError(msg or 'Attempted to unwrap an Error') from e
 
     def unwrap_or(self, fallback: T) -> T:
@@ -563,7 +563,7 @@ def unwrap_result(f: Callable[P, Result[R, E]]) -> Callable[P, R]:
         err = result.unwrap_err()
         if isinstance(err, Exception):
             raise err
-        raise ErrorWrapper(err)
+        raise WrapError(err)
 
     return inner
 
@@ -590,7 +590,7 @@ def unwrap_result_async(f: Callable[P, Awaitable[Result[R, E]]]) -> Callable[P, 
         err = result.unwrap_err()
         if isinstance(err, Exception):
             raise err
-        raise ErrorWrapper(err)
+        raise WrapError(err)
 
     return inner
 

@@ -14,8 +14,7 @@ from simple_monads.maybe import (
     Something,
     maybe,
     stop,
-    unwrap_maybe,
-    unwrap_maybe_async,
+    unwrap,
     wrap_maybe,
     wrap_maybe_async,
 )
@@ -353,33 +352,30 @@ class TestMaybeWrapAsync:
 class TestMaybeUnwrap:
 
     def test_something(self) -> None:
-        @unwrap_maybe
+        @unwrap
         def helper() -> Maybe[str]:
             return Something('foo')
 
         assert helper() == 'foo'
 
     def test_nothing(self) -> None:
-        @unwrap_maybe
+        @unwrap
         def helper() -> Maybe[str]:
             return Nothing()
 
         assert helper() is None
 
-
-class TestMaybeUnwrapASync:
-
     @pytest.mark.asyncio
-    async def test_something(self) -> None:
-        @unwrap_maybe_async
+    async def test_something_async(self) -> None:
+        @unwrap
         async def helper() -> Maybe[str]:
             return Something('foo')
 
         assert await helper() == 'foo'
 
     @pytest.mark.asyncio
-    async def test_nothing(self) -> None:
-        @unwrap_maybe_async
+    async def test_nothing_async(self) -> None:
+        @unwrap
         async def helper() -> Maybe[str]:
             return Nothing()
 

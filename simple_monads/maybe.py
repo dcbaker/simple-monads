@@ -31,8 +31,7 @@ __all__ = [
     'Something',
     'maybe',
     'stop',
-    'unwrap_maybe',
-    'unwrap_maybe_async',
+    'unwrap',
     'wrap_maybe',
     'wrap_maybe_async',
 ]
@@ -689,44 +688,16 @@ def wrap_maybe(f: Callable[P, R | None]) -> Callable[P, Maybe[R]]:
     return inner
 
 
-def unwrap_maybe_async(f: Callable[P, Awaitable[Maybe[R]]]) -> Callable[P, Awaitable[R | None]]:
-    """Decorator (or wrapper) to convert back to common asynchronous Python.
-
-    Converts code returning Awaitable[Maybe[T]] to Awaitable[T | None].
-
-    This is meant to ease transitioning a codebase to using simple_monads, but
-    allowing code to internally use Maybe, but return common Python Optional
-
-    >>> import asyncio
-    >>> async def raw(arg: str) -> Maybe[str]:
-    ...     if arg:
-    ...         return Something(arg)
-    ...     return Nothing()
-
-    >>> f = unwrap_maybe_async(raw)
-    >>> asyncio.run(f("foo"))
-    'foo'
-
-    >>> @unwrap_maybe_async
-    ... async def g(arg: str) -> str | None:
-    ...     return await raw(arg)
-
-    >>> asyncio.run(g("foo"))
-    'foo'
-
-    :param f: An async callable returning a :class:`Maybe[T]`
-    :return: A new async callable returning a `T | None`
-    """
-
-    @wraps(f)
-    async def inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
-        return (await f(*args, **kwargs)).get()
-
-    return inner
+@overload
+def unwrap(f: Callable[P, Awaitable[Maybe[R]]]) -> Callable[P, Awaitable[R | None]]: ...
 
 
-def unwrap_maybe(f: Callable[P, Maybe[R]]) -> Callable[P, R | None]:
+@overload
+def unwrap(f: Callable[P, Maybe[R]]) -> Callable[P, R | None]: ...
 
+
+def unwrap(f: Callable[P, Maybe[R]] | Callable[P, Awaitable[Maybe[R]]]
+           ) -> Callable[P, R | None] | Callable[P, Awaitable[R | None]]:
     """Decorator (or wrapper) to convert back to common Python.
 
     Converts code returning Maybe[T] to T | None.
@@ -739,26 +710,49 @@ def unwrap_maybe(f: Callable[P, Maybe[R]]) -> Callable[P, R | None]:
     ...         return Something(arg)
     ...     return Nothing()
 
-    >>> f = unwrap_maybe(raw)
+    >>> f = unwrap(raw)
     >>> f("foo")
     'foo'
 
-    >>> @unwrap_maybe
+    >>> @unwrap
     ... def g(arg: str) -> str | None:
     ...     return raw(arg)
 
     >>> g("foo")
     'foo'
 
+    >>> import asyncio
+    >>> async def raw(arg: str) -> Maybe[str]:
+    ...     if arg:
+    ...         return Something(arg)
+    ...     return Nothing()
+
+    >>> f = unwrap(raw)
+    >>> asyncio.run(f("foo"))
+    'foo'
+
+    >>> @unwrap
+    ... async def g(arg: str) -> str | None:
+    ...     return await raw(arg)
+
+    >>> asyncio.run(g("foo"))
+    'foo'
+
     :param f: A callable returning a :class:`Maybe[T]`
     :return: A new callable returning a `T | None`
     """
+    if iscoroutine(f):
+        @wraps(f)
+        async def inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
+            return (await f(*args, **kwargs)).get()
 
-    @wraps(f)
-    def inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
-        return f(*args, **kwargs).get()
+        return inner
+    else:
+        @wraps(f)
+        def inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
+            return f(*args, **kwargs).get()
 
-    return inner
+        return inner
 
 
 @overload

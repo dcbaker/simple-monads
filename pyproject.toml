@@ -53,4 +53,4 @@
   line-length = 100
 
   [tool.ruff.lint]
-    select = ["ASYNC", "A", "E", "F", "I", "N", "PERF", "SIM", "UP"]
+    select = ["ASYNC", "A", "B", "E", "F", "I", "N", "PERF", "SIM", "UP"]

@@ -4,9 +4,10 @@
 """An implementation of a Result type."""
 
 from __future__ import annotations
-from functools import wraps
-from typing import TYPE_CHECKING, TypeVar, ParamSpec, Generic
+
 from dataclasses import dataclass
+from functools import wraps
+from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
 
 if TYPE_CHECKING:
     from typing import Awaitable, Callable, Literal

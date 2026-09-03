@@ -1,50 +1,49 @@
 [build-system]
-requires = ["flit_core >=3.2,<4"]
-build-backend = "flit_core.buildapi"
+  requires = ["flit_core >=3.2,<4"]
+  build-backend = "flit_core.buildapi"
 
 [project]
-name = "simple-py-monads"
-authors = [{name = "Dylan Baker", email = "dylan@pnwbakers.com"}]
-dynamic = ["version", "description"]
-requires-python = ">=3.10"
-classifiers = [
-  "Development Status :: 3 - Alpha",
-  "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Topic :: Software Development :: Libraries",
-  "Typing :: Typed",
-]
-keywords = [
-  "Monad",
-  "Optional",
-  "Result",
-]
+  name = "simple-py-monads"
+  authors = [{name = "Dylan Baker", email = "dylan@pnwbakers.com"}]
+  dynamic = ["version", "description"]
+  requires-python = ">=3.10"
+  classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+    "Typing :: Typed",
+  ]
+  keywords = [
+    "Monad",
+    "Optional",
+    "Result",
+  ]
 
 [project.optional-dependencies]
-test = [
-  "pytest",
-  "pytest-asyncio",
-]
+  test = [
+    "pytest",
+    "pytest-asyncio",
+  ]
 
-lint = [
-  "mypy",
-]
+  lint = [
+    "mypy",
+  ]
 
 [project.urls]
-Source = "https://github.com/dcbaker/simple-monads"
+  Source = "https://github.com/dcbaker/simple-monads"
 
 [tool.flit.module]
-name = "simple_monads"
+  name = "simple_monads"
 
 [tool.mypy]
-python_version = "3.10"
-strict = true
-packages = ["simple_monads", "tests"]
-
+  python_version = "3.10"
+  strict = true
+  packages = ["simple_monads", "tests"]
 
 [tool.pytest.ini_options]
-addopts = ["--doctest-modules"]
+  addopts = ["--doctest-modules"]

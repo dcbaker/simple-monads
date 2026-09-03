@@ -58,7 +58,7 @@
     select = ["ASYNC", "A", "B", "E", "F", "I", "N", "PERF", "SIM", "UP"]
 
 [tool.bumpversion]
-  current_version = "0.0.5"
+  current_version = "0.0.6"
   parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
   serialize = ["{major}.{minor}.{patch}"]
   search = "{current_version}"

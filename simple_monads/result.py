@@ -32,8 +32,7 @@ __all__ = [
     'Success',
     'UnwrapError',
     'stop',
-    'unwrap_result',
-    'unwrap_result_async',
+    'unwrap',
     'wrap_result',
     'wrap_result_async',
 ]
@@ -545,34 +544,17 @@ def wrap_result_async(catch: type[Exception] | tuple[type[Exception], ...] = Exc
     return wrapper
 
 
-def unwrap_result(f: Callable[P, Result[R, E]]) -> Callable[P, R]:
-    """Decorator for unwrapping Result returning functions, return the result or
-    throwing the Exception.
-
-    This is meant for simple cases only, if you wish to have more complex error
-    handling than simply catching all exceptions and putting them in the Result
-    you will need to handle that yourself.
-
-    :param f: A callable to unwrap
-    :raises ErrorWrapper: if E is not an Exception type
-    :raises E: any values of E that Exceptions
-    :return: the valu eof a Success
-    """
-
-    @wraps(f)
-    def inner(*args: P.args, **kwargs: P.kwargs) -> R:
-        result = f(*args, **kwargs)
-        if result.is_ok():
-            return result.unwrap()
-        err = result.unwrap_err()
-        if isinstance(err, Exception):
-            raise err
-        raise WrapError(err)
-
-    return inner
+@overload
+def unwrap(f: Callable[P, Result[R, E]]) -> Callable[P, R]: ...
 
 
-def unwrap_result_async(f: Callable[P, Awaitable[Result[R, E]]]) -> Callable[P, Awaitable[R]]:
+@overload
+def unwrap(f: Callable[P, Awaitable[Result[R, E]]]
+                  ) -> Callable[P, Awaitable[R]]: ...
+
+
+def unwrap(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
+           ) -> Callable[P, R] | Callable[P, Awaitable[R]]:
     """Decorator for unwrapping Result returning functions, return the result or
     throwing the Exception.
 
@@ -585,18 +567,30 @@ def unwrap_result_async(f: Callable[P, Awaitable[Result[R, E]]]) -> Callable[P, 
     :raises E: any values of E that Exceptions
     :return: the value of a Success
     """
+    if iscoroutine(f):
+        @wraps(f)
+        async def inner(*args: P.args, **kwargs: P.kwargs) -> R:
+            result = await f(*args, **kwargs)
+            if result.is_ok():
+                return result.unwrap()
+            err = result.unwrap_err()
+            if isinstance(err, Exception):
+                raise err
+            raise WrapError(err)
 
-    @wraps(f)
-    async def inner(*args: P.args, **kwargs: P.kwargs) -> R:
-        result = await f(*args, **kwargs)
-        if result.is_ok():
-            return result.unwrap()
-        err = result.unwrap_err()
-        if isinstance(err, Exception):
-            raise err
-        raise WrapError(err)
+        return inner
+    else:
+        @wraps(f)
+        def inner(*args: P.args, **kwargs: P.kwargs) -> R:
+            result = f(*args, **kwargs)
+            if result.is_ok():
+                return result.unwrap()
+            err = result.unwrap_err()
+            if isinstance(err, Exception):
+                raise err
+            raise WrapError(err)
 
-    return inner
+        return inner
 
 
 @overload

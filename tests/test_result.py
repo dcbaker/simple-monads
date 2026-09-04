@@ -13,8 +13,7 @@ from simple_monads.result import (
     Success,
     UnwrapError,
     stop,
-    unwrap_result,
-    unwrap_result_async,
+    unwrap,
     wrap_result,
     wrap_result_async,
 )
@@ -398,34 +397,31 @@ class TestWrapResultASync:
 class TestUnwrapResult:
 
     def test_success(self) -> None:
-        @unwrap_result
+        @unwrap
         def foo() -> Result[str, ValueError]:
             return Success('foo')
 
         assert foo() == 'foo'
 
     def test_error(self) -> None:
-        @unwrap_result
+        @unwrap
         def foo() -> Result[str, ValueError]:
             return Error(ValueError('foo'))
 
         with pytest.raises(ValueError, match='foo'):
             foo()
 
-
-class TestUnwrapResultAsync:
-
     @pytest.mark.asyncio
-    async def test_success(self) -> None:
-        @unwrap_result_async
+    async def test_success_async(self) -> None:
+        @unwrap
         async def foo() -> Result[str, ValueError]:
             return Success('foo')
 
         assert await foo() == 'foo'
 
     @pytest.mark.asyncio
-    async def test_error(self) -> None:
-        @unwrap_result_async
+    async def test_error_async(self) -> None:
+        @unwrap
         async def foo() -> Result[str, ValueError]:
             return Error(ValueError('foo'))
 

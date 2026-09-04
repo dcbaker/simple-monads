@@ -5,13 +5,16 @@
 
 from __future__ import annotations
 
+import inspect
 from dataclasses import dataclass
 from functools import wraps
-from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar, overload
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from typing import Literal
+
+    from typing_extensions import TypeIs
 
     from .maybe import Maybe
 
@@ -29,12 +32,16 @@ __all__ = [
     'Success',
     'UnwrapError',
     'stop',
-    'stop_async',
     'unwrap_result',
     'unwrap_result_async',
     'wrap_result',
     'wrap_result_async',
 ]
+
+
+def iscoroutine(f: Callable[P, R | Awaitable[R]]) -> TypeIs[Callable[P, Awaitable[R]]]:
+    """Type guard helper for async vs sync functions"""
+    return inspect.iscoroutinefunction(f)
 
 
 class UnwrapError(Exception):
@@ -592,7 +599,17 @@ def unwrap_result_async(f: Callable[P, Awaitable[Result[R, E]]]) -> Callable[P, 
     return inner
 
 
-def stop(f: Callable[P, Result[R, E]]) -> Callable[P, Result[R, E]]:
+@overload
+def stop(f: Callable[P, Awaitable[Result[R, E]]]
+         ) -> Callable[P, Awaitable[Result[R, E]]]: ...
+
+
+@overload
+def stop(f: Callable[P, Result[R, E]]) -> Callable[P, Result[R, E]]: ...
+
+
+def stop(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
+         ) -> Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]:
     """Decorator for functions that use :meth:`Result.propagate`.
 
     This is required to catch the propagated Error, and ensure that it is
@@ -611,32 +628,12 @@ def stop(f: Callable[P, Result[R, E]]) -> Callable[P, Result[R, E]]:
     >>> f()
     Error('err!')
 
-    :param f: The function to wrap
-    :return: The original function wrapped to handle Propagation Exceptions
-    """
-
-    @wraps(f)
-    def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
-        try:
-            return f(*args, **kwargs)
-        except Propagation as e:
-            return Error(e.err)
-
-    return inner
-
-
-def stop_async(f: Callable[P, Awaitable[Result[R, E]]]) -> Callable[P, Awaitable[Result[R, E]]]:
-    """Decorator for async functions that use :meth:`Result.propagate`.
-
-    This is required to catch the propagated Error, and ensure that it is
-    returned instead of continuing to go up the stack.
-
     >>> @wrap_result
     ... def h(v: str) -> Result[int, Exception]:
     ...     return int(v)
 
-    >>> @stop_async
-    ... def f() -> Result[int, str]:
+    >>> @stop
+    ... async def f() -> Result[int, str]:
     ...     v = Error('err!')
     ...     x = h(v.propagate())
     ...     return x.map(lambda x: x + 10).map_err(lambda e: 'got: ' + e)
@@ -645,15 +642,24 @@ def stop_async(f: Callable[P, Awaitable[Result[R, E]]]) -> Callable[P, Awaitable
     >>> asyncio.run(f())
     Error('err!')
 
-    :param f: The async function to wrap
+    :param f: The function to wrap
     :return: The original function wrapped to handle Propagation Exceptions
     """
+    if iscoroutine(f):
+        @wraps(f)
+        async def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
+            try:
+                return await f(*args, **kwargs)
+            except Propagation as e:
+                return Error(e.err)
 
-    @wraps(f)
-    async def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
-        try:
-            return await f(*args, **kwargs)
-        except Propagation as e:
-            return Error(e.err)
+        return inner
+    else:
+        @wraps(f)
+        def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
+            try:
+                return f(*args, **kwargs)
+            except Propagation as e:
+                return Error(e.err)
 
-    return inner
+        return inner

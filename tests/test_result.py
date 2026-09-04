@@ -13,7 +13,6 @@ from simple_monads.result import (
     Success,
     UnwrapError,
     stop,
-    stop_async,
     unwrap_result,
     unwrap_result_async,
     wrap_result,
@@ -456,12 +455,9 @@ class TestPropagate:
 
         assert inner() == Success('foobar')
 
-
-class TestPropagateAsync:
-
     @pytest.mark.asyncio
-    async def test_prop(self) -> None:
-        @stop_async
+    async def test_prop_async(self) -> None:
+        @stop
         async def inner() -> Result[str, int]:
             r: Result[str, int] = Error(4)
             x = r.propagate()
@@ -470,8 +466,8 @@ class TestPropagateAsync:
         assert await inner() == Error(4)
 
     @pytest.mark.asyncio
-    async def test_no_prop(self) -> None:
-        @stop_async
+    async def test_no_prop_async(self) -> None:
+        @stop
         async def inner() -> Result[str, int]:
             r: Result[str, int] = Success('foo')
             x = r.propagate()

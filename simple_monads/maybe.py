@@ -32,8 +32,7 @@ __all__ = [
     'maybe',
     'stop',
     'unwrap',
-    'wrap_maybe',
-    'wrap_maybe_async',
+    'wrap',
 ]
 
 
@@ -623,43 +622,22 @@ def maybe(result: T | None) -> Maybe[T]:
     return Something(result)
 
 
-def wrap_maybe_async(f: Callable[P, Awaitable[R | None]]) -> Callable[P, Awaitable[Maybe[R]]]:
-    """Decorator (or wrapper) for asynchronous python code.
-
-    Converts code returning Awaitable[T | None] to return Awaitable[Maybe[T]]
-
-    >>> import asyncio
-
-    >>> @wrap_maybe_async
-    ... async def func(arg: bool) -> str | None:
-    ...     if arg:
-    ...         return "yes!"
-    ...     return None
-    ...
-    >>> asyncio.run(func(True))
-    Something('yes!')
-
-    >>> asyncio.run(func(False))
-    Nothing()
-
-    :param f: An async callable returning a type R or None
-    :return: A new async callable return :class:`Maybe[R]`, where a non-null are
-        :class:`Success`, and None is :class:`Nothing`
-    """
-
-    @wraps(f)
-    async def inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
-        return maybe(await f(*args, **kwargs))
-
-    return inner
+@overload
+def wrap(f: Callable[P, Awaitable[R | None]]  # type: ignore[overload-overlap]
+         ) -> Callable[P, Awaitable[Maybe[R]]]: ...
 
 
-def wrap_maybe(f: Callable[P, R | None]) -> Callable[P, Maybe[R]]:
+@overload
+def wrap(f: Callable[P, R | None]) -> Callable[P, Maybe[R]]: ...
+
+
+def wrap(f: Callable[P, R | None] | Callable[P, Awaitable[R | None]]
+         ) -> Callable[P, Maybe[R]] | Callable[P, Awaitable[Maybe[R]]]:
     """Decorator (or wrapper) for common python code.
 
     Converts code returning T | None to return Maybe[T]
 
-    >>> @wrap_maybe
+    >>> @wrap
     ... def func(arg: bool) -> str | None:
     ...     if arg:
     ...         return "yes!"
@@ -672,20 +650,40 @@ def wrap_maybe(f: Callable[P, R | None]) -> Callable[P, Maybe[R]]:
     Nothing()
 
     >>> import os
-    >>> f = wrap_maybe(os.environ.get)
+    >>> f = wrap(os.environ.get)
     >>> f("Totally not there")
+    Nothing()
+
+    >>> import asyncio
+
+    >>> @wrap
+    ... async def func(arg: bool) -> str | None:
+    ...     if arg:
+    ...         return "yes!"
+    ...     return None
+    ...
+    >>> asyncio.run(func(True))
+    Something('yes!')
+
+    >>> asyncio.run(func(False))
     Nothing()
 
     :param f: A callable returning a type R or None
     :return: A new callable return :class:`Maybe[R]`, where a non-null are
         :class:`Success`, and None is :class:`Nothing`
     """
+    if iscoroutine(f):
+        @wraps(f)
+        async def inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
+            return maybe(await f(*args, **kwargs))
 
-    @wraps(f)
-    def inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
-        return maybe(f(*args, **kwargs))
+        return inner
+    else:
+        @wraps(f)
+        def inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
+            return maybe(f(*args, **kwargs))
 
-    return inner
+        return inner
 
 
 @overload

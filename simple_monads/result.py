@@ -8,11 +8,11 @@ from __future__ import annotations
 import inspect
 from dataclasses import dataclass
 from functools import wraps
-from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar, overload
+from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar, cast, overload
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
-    from typing import Literal
+    from typing import Literal, Protocol
 
     from typing_extensions import TypeIs
 
@@ -24,6 +24,7 @@ T = TypeVar('T')
 U = TypeVar('U')
 E = TypeVar('E')
 F = TypeVar('F')
+X = TypeVar('X', bound=Exception)
 
 __all__ = [
     'Error',
@@ -33,8 +34,7 @@ __all__ = [
     'UnwrapError',
     'stop',
     'unwrap',
-    'wrap_result',
-    'wrap_result_async',
+    'wrap',
 ]
 
 
@@ -491,55 +491,66 @@ class Success(Result[T, E]):
         return self._held
 
 
-def wrap_result(catch: type[Exception] | tuple[type[Exception], ...] = Exception
-                ) -> Callable[[Callable[P, R]], Callable[P, Result[R, Exception]]]:
+if TYPE_CHECKING:
+    class _WrapDecorator(Protocol[X]):
+        """Callable shape returned by :func:`wrap`, preserving overload resolution."""
+
+        @overload
+        def __call__(self, f: Callable[P, Awaitable[R]]  # type: ignore[overload-overlap]
+                     ) -> Callable[P, Awaitable[Result[R, X]]]: ...
+
+        @overload
+        def __call__(self, f: Callable[P, R]) -> Callable[P, Result[R, X]]: ...
+
+
+@overload
+def wrap() -> _WrapDecorator[Exception]: ...
+
+@overload
+def wrap(catch: type[X] | tuple[type[X], ...]) -> _WrapDecorator[X]: ...
+
+def wrap(catch: type[X] | tuple[type[X], ...] | None = None) -> _WrapDecorator[X]:
     """Decorator for wrapping throwing functions to return a Result instead
 
     This is meant for simple cases only, if you wish to have more complex error
     handling than simply catching all exceptions and putting them in the Result
     you will need to handle that yourself.
 
-    :param f: A callable to wrap
-    :param catch: A Exeption or tuple of Exceptions to catch, defaults to Exception
+    :param catch: An Exception type or tuple of Exception types to catch, defaults to Exception
     :return: A result of T or the caught Exception(s) as E
     """
+    # This is done here because mypy can't figure out that Exception is valid
+    # for type[X]
+    if catch is None:
+        catch = cast('type[X]', Exception)
 
-    def wrapper(f: Callable[P, R]) -> Callable[P, Result[R, Exception]]:
-        @wraps(f)
-        def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, Exception]:
-            try:
-                return Success(f(*args, **kwargs))
-            except catch as e:
-                return Error(e)
+    @overload
+    def wrapper(f: Callable[P, Awaitable[R]]  # type: ignore[overload-overlap]
+                ) -> Callable[P, Awaitable[Result[R, X]]]: ...
 
-        return inner
+    @overload
+    def wrapper(f: Callable[P, R]) -> Callable[P, Result[R, X]]: ...
 
-    return wrapper
+    def wrapper(f: Callable[P, Awaitable[R]] | Callable[P, R]
+                ) -> Callable[P, Awaitable[Result[R, X]]] | Callable[P, Result[R, X]]:  # noqa: E501
+        if iscoroutine(f):
+            @wraps(f)
+            async def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, X]:
+                try:
+                    return Success(await f(*args, **kwargs))
+                except catch as e:
+                    return Error(e)
 
+            return inner
+        else:
+            @wraps(f)
+            def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, X]:
+                try:
+                    return Success(f(*args, **kwargs))
+                except catch as e:
+                    return Error(e)
 
-def wrap_result_async(catch: type[Exception] | tuple[type[Exception], ...] = Exception
-                      ) -> Callable[[Callable[P, Awaitable[R]]],
-                                     Callable[P, Awaitable[Result[R, Exception]]]]:
-    """Decorator for wrapping throwing functions to return a Result instead
-
-    This is meant for simple cases only, if you wish to have more complex error
-    handling than simply catching all exceptions and putting them in the Result
-    you will need to handle that yourself.
-
-    :param f: A callable to wrap
-    :param catch: A Exeption or tuple of Exceptions to catch, defaults to Exception
-    :return: A result of T or the caught Exception(s) as E
-    """
-
-    def wrapper(f: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[Result[R, Exception]]]:
-        @wraps(f)
-        async def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, Exception]:
-            try:
-                return Success(await f(*args, **kwargs))
-            except catch as e:
-                return Error(e)
-
-        return inner
+            return inner
 
     return wrapper
 
@@ -609,7 +620,7 @@ def stop(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
     This is required to catch the propagated Error, and ensure that it is
     returned instead of continuing to go up the stack.
 
-    >>> @wrap_result
+    >>> @wrap
     ... def h(v: str) -> Result[int, Exception]:
     ...     return int(v)
 
@@ -622,7 +633,7 @@ def stop(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
     >>> f()
     Error('err!')
 
-    >>> @wrap_result
+    >>> @wrap
     ... def h(v: str) -> Result[int, Exception]:
     ...     return int(v)
 

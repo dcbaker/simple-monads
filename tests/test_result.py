@@ -14,8 +14,7 @@ from simple_monads.result import (
     UnwrapError,
     stop,
     unwrap,
-    wrap_result,
-    wrap_result_async,
+    wrap,
 )
 
 
@@ -327,48 +326,45 @@ class TestResult:
 class TestWrapResult:
 
     def test_success(self) -> None:
-        @wrap_result()
+        @wrap()
         def foo() -> str:
             return ''
 
         assert foo() == Success('')
 
     def test_error(self) -> None:
-        @wrap_result(Exception)
+        @wrap(Exception)
         def foo() -> str:
             raise Exception('foo')
 
         assert isinstance(foo().unwrap_err(), Exception)
 
     def test_error_multi(self) -> None:
-        @wrap_result((ValueError, RecursionError))
+        @wrap((ValueError, RecursionError))
         def foo() -> str:
             raise ValueError('foo')
 
         assert isinstance(foo().unwrap_err(), ValueError)
 
     def test_error_uncaught(self) -> None:
-        @wrap_result(ArithmeticError)
+        @wrap(ArithmeticError)
         def foo() -> str:
             raise ValueError('foo')
 
         with pytest.raises(ValueError, match='foo'):
             foo()
 
-
-class TestWrapResultASync:
-
     @pytest.mark.asyncio
-    async def test_success(self) -> None:
-        @wrap_result_async()
+    async def test_success_async(self) -> None:
+        @wrap()
         async def foo() -> str:
             return ''
 
         assert await foo() == Success('')
 
     @pytest.mark.asyncio
-    async def test_error(self) -> None:
-        @wrap_result_async(Exception)
+    async def test_error_async(self) -> None:
+        @wrap(Exception)
         async def foo() -> str:
             raise Exception('foo')
 
@@ -376,8 +372,8 @@ class TestWrapResultASync:
         assert isinstance(err.unwrap_err(), Exception)
 
     @pytest.mark.asyncio
-    async def test_error_multi(self) -> None:
-        @wrap_result_async((ValueError, RecursionError))
+    async def test_error_multi_async(self) -> None:
+        @wrap((ValueError, RecursionError))
         async def foo() -> str:
             raise ValueError('foo')
 
@@ -385,8 +381,8 @@ class TestWrapResultASync:
         assert isinstance(err.unwrap_err(), ValueError)
 
     @pytest.mark.asyncio
-    async def test_error_uncaught(self) -> None:
-        @wrap_result_async(ArithmeticError)
+    async def test_error_uncaught_async(self) -> None:
+        @wrap(ArithmeticError)
         async def foo() -> str:
             raise ValueError('foo')
 

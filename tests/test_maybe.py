@@ -286,7 +286,7 @@ class TestMaybe:
                     pytest.fail()
                 case Something('foo'):
                     assert True
-                case Nothing():
+                case Nothing():  # type: ignore[unreachable]
                     pytest.fail()
                 case _:
                     pytest.fail()
@@ -294,9 +294,9 @@ class TestMaybe:
         def test_nothing(self) -> None:
             s: Nothing[str] = Nothing()
             match s:
-                case Something('bar'):
+                case Something('bar'):  # type: ignore[unreachable]
                     pytest.fail()
-                case Something('foo'):
+                case Something('foo'):  # type: ignore[unreachable]
                     pytest.fail()
                 case Nothing():
                     assert True

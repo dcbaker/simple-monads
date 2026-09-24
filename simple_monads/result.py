@@ -552,8 +552,8 @@ def unwrap(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
     you will need to handle that yourself.
 
     :param f: A callable to unwrap
-    :raises ErrorWrapper: if E is not an Exception type
-    :raises E: any values of E that Exceptions
+    :raises WrapError: if E is not an Exception type
+    :raises E: any values of E that are Exceptions
     :return: the value of a Success
     """
     if iscoroutine(f):

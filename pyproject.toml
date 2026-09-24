@@ -46,6 +46,7 @@
 [tool.mypy]
   python_version = "3.10"
   strict = true
+  warn_unreachable = true
   packages = ["simple_monads", "tests"]
 
 [tool.pytest.ini_options]

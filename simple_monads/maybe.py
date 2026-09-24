@@ -8,7 +8,7 @@ from __future__ import annotations
 import inspect
 from dataclasses import dataclass
 from functools import wraps
-from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar, overload
+from typing import TYPE_CHECKING, Generic, ParamSpec, Protocol, TypeVar, overload
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -61,7 +61,7 @@ class EmptyMaybeError(Exception):
     """
 
 
-class Maybe(Generic[T]):
+class Maybe(Protocol[T]):
 
     """Base Class for Option, do not directly instantiate.
 
@@ -84,7 +84,6 @@ class Maybe(Generic[T]):
 
         :return: True if this is Something otherwise False
         """
-        raise NotImplementedError()
 
     @staticmethod
     def is_nothing() -> bool:
@@ -101,7 +100,6 @@ class Maybe(Generic[T]):
 
         :return: True if this is Nothing otherwise False
         """
-        raise NotImplementedError()
 
     def map(self, cb: Callable[[T], U]) -> Maybe[U]:
         """Transforms the held value using the callback
@@ -117,7 +115,6 @@ class Maybe(Generic[T]):
         :param cb: A callback transforming the held value from T to U
         :return: A new Maybe holding the transformed value
         """
-        raise NotImplementedError()
 
     async def map_async(self, cb: Callable[[T], Awaitable[U]]) -> Maybe[U]:
         """Transforms the held value using the callback asynchronously.
@@ -135,7 +132,6 @@ class Maybe(Generic[T]):
         :param cb: A callback transforming the held value from T to awaitable U
         :return: A new Maybe holding the transformed value
         """
-        raise NotImplementedError()
 
     def map_or(self, cb: Callable[[T], U], fallback: U) -> Maybe[U]:
         """Transform the held value using the callback, or use the fallback
@@ -151,7 +147,6 @@ class Maybe(Generic[T]):
         :param fallback: A value to use for Nothing
         :return: A Something containing the transformation or the fallback value
         """
-        raise NotImplementedError()
 
     async def map_or_async(self, cb: Callable[[T], Awaitable[U]], fallback: U) -> Maybe[U]:
         """Transform the held value using the callback, or use the fallback
@@ -171,7 +166,6 @@ class Maybe(Generic[T]):
         :param fallback: A value to use for Nothing
         :return: A Something containing the transformation or the fallback value
         """
-        raise NotImplementedError()
 
     def map_or_else(self, cb: Callable[[T], U], fallback: Callable[[], U]) -> Maybe[U]:
         """Transform the held value using the callback, or use the fallback
@@ -187,7 +181,6 @@ class Maybe(Generic[T]):
         :param fallback: callable returning a value U
         :return: A Something containing the transformation or the fallback value
         """
-        raise NotImplementedError()
 
     async def map_or_else_async(
             self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:  # noqa: E501
@@ -211,7 +204,6 @@ class Maybe(Generic[T]):
         :param fallback: callable returning a value U
         :return: A Something containing the transformation or the fallback value
         """
-        raise NotImplementedError()
 
     def get(self, fallback: T | None = None) -> T | None:
         """Get the held value.
@@ -227,7 +219,6 @@ class Maybe(Generic[T]):
         :param fallback: A value to use if this is Nothing
         :return: The value or fallback
         """
-        raise NotImplementedError()
 
     def unwrap(self, msg: str | None = None) -> T:
         """Get the held value or throw an Exception.
@@ -249,7 +240,6 @@ class Maybe(Generic[T]):
         :raises EmptyMaybeError: If this is Nothing
         :return: The held value
         """
-        raise NotImplementedError()
 
     def unwrap_or(self, fallback: T) -> T:
         """Get the value or a fallback value.
@@ -266,7 +256,6 @@ class Maybe(Generic[T]):
         :param fallback: The fallback to return
         :return: The held value or the fallback
         """
-        raise NotImplementedError()
 
     def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
         """Get the value or call the fallback to get a value
@@ -280,7 +269,6 @@ class Maybe(Generic[T]):
         :param fallback: A callable returning a type T
         :return: The held value or the fallback
         """
-        raise NotImplementedError()
 
     async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[T]]) -> T:
         """Get the value or call the fallback to get a value
@@ -298,7 +286,6 @@ class Maybe(Generic[T]):
         :param fallback: An async callable returning a type T
         :return: The held value or the fallback
         """
-        raise NotImplementedError()
 
     def and_then(self, cb: Callable[[T], Maybe[U]]) -> Maybe[U]:
         """Run a callback on the value if it is Something
@@ -309,7 +296,6 @@ class Maybe(Generic[T]):
         :param cb: A callback to run on the held value or Something()
         :return: A Maybe[U] with the result of the callback or nothing
         """
-        raise NotImplementedError()
 
     async def and_then_async(self, cb: Callable[[T], Awaitable[Maybe[U]]]) -> Maybe[U]:
         """Run a callback on the value if it is Something
@@ -323,7 +309,6 @@ class Maybe(Generic[T]):
         :param cb: A callback to run on the held value or Something()
         :return: A Maybe[U] with the result of the callback or nothing
         """
-        raise NotImplementedError()
 
     def or_else(self, fallback: Callable[[], Maybe[T]]) -> Maybe[T]:
         """Run a callback to get a value if this is Nothing or return self.
@@ -339,7 +324,6 @@ class Maybe(Generic[T]):
         :return: A Maybe[T], which is self unchanged if this Something,
             otherwise the result of fallback
         """
-        raise NotImplementedError()
 
     async def or_else_async(self, fallback: Callable[[], Awaitable[Maybe[T]]]) -> Maybe[T]:
         """Run a callback to get a value if this is Nothing or return self.
@@ -358,7 +342,6 @@ class Maybe(Generic[T]):
         :return: A Maybe[T], which is self unchanged if this Something,
             otherwise the result of fallback
         """
-        raise NotImplementedError()
 
     def ok_or(self, err: E) -> Result[T, E]:
         """Convert this Option to a Result.
@@ -375,7 +358,6 @@ class Maybe(Generic[T]):
         :param err: An error if this is Nothing
         :return: A result with the held value as a Success or an Error
         """
-        raise NotImplementedError()
 
     def ok_or_else(self, err: Callable[[], E]) -> Result[T, E]:
         """Convert this Option to a Result.
@@ -392,7 +374,6 @@ class Maybe(Generic[T]):
         :param err: An callable returning a type E
         :return: A result with the held value as a Success or an Error
         """
-        raise NotImplementedError()
 
     async def ok_or_else_async(self, err: Callable[[], Awaitable[E]]) -> Result[T, E]:
         """Convert this Option to a Result asynchronously.
@@ -412,7 +393,6 @@ class Maybe(Generic[T]):
         :param err: An async callable returning a type E
         :return: A result with the held value as a Success or an Error
         """
-        raise NotImplementedError()
 
     def propagate(self) -> T:
         """Get the value, or propagate an error up the stack.
@@ -433,7 +413,6 @@ class Maybe(Generic[T]):
         >>> func()
         Nothing()
         """
-        raise NotImplementedError()
 
 
 @dataclass(slots=True, frozen=True)

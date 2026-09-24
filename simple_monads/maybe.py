@@ -674,10 +674,10 @@ def wrap(f: Callable[P, R | None] | Callable[P, Awaitable[R | None]]
     """
     if iscoroutine(f):
         @wraps(f)
-        async def inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
+        async def ainner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
             return maybe(await f(*args, **kwargs))
 
-        return inner
+        return ainner
     else:
         @wraps(f)
         def inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
@@ -741,10 +741,10 @@ def unwrap(f: Callable[P, Maybe[R]] | Callable[P, Awaitable[Maybe[R]]]
     """
     if iscoroutine(f):
         @wraps(f)
-        async def inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
+        async def ainner(*args: P.args, **kwargs: P.kwargs) -> R | None:
             return (await f(*args, **kwargs)).get()
 
-        return inner
+        return ainner
     else:
         @wraps(f)
         def inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
@@ -786,13 +786,13 @@ def stop(f: Callable[P, Awaitable[Maybe[R]]] | Callable[P, Maybe[R]]
 
     if iscoroutine(f):
         @wraps(f)
-        async def inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
+        async def ainner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
             try:
                 return await f(*args, **kwargs)
             except Propagation:
                 return Nothing()
 
-        return inner
+        return ainner
     else:
         @wraps(f)
         def inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:

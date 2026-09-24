@@ -535,13 +535,13 @@ def wrap(catch: type[X] | tuple[type[X], ...] | None = None) -> _WrapDecorator[X
                 ) -> Callable[P, Awaitable[Result[R, X]]] | Callable[P, Result[R, X]]:  # noqa: E501
         if iscoroutine(f):
             @wraps(f)
-            async def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, X]:
+            async def ainner(*args: P.args, **kwargs: P.kwargs) -> Result[R, X]:
                 try:
                     return Success(await f(*args, **kwargs))
                 except catch as e:
                     return Error(e)
 
-            return inner
+            return ainner
         else:
             @wraps(f)
             def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, X]:
@@ -580,7 +580,7 @@ def unwrap(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
     """
     if iscoroutine(f):
         @wraps(f)
-        async def inner(*args: P.args, **kwargs: P.kwargs) -> R:
+        async def ainner(*args: P.args, **kwargs: P.kwargs) -> R:
             result = await f(*args, **kwargs)
             if result.is_ok():
                 return result.unwrap()
@@ -589,7 +589,7 @@ def unwrap(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
                 raise err
             raise WrapError(err)
 
-        return inner
+        return ainner
     else:
         @wraps(f)
         def inner(*args: P.args, **kwargs: P.kwargs) -> R:
@@ -652,13 +652,13 @@ def stop(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
     """
     if iscoroutine(f):
         @wraps(f)
-        async def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
+        async def ainner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
             try:
                 return await f(*args, **kwargs)
             except Propagation as e:
                 return Error(e.err)
 
-        return inner
+        return ainner
     else:
         @wraps(f)
         def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:

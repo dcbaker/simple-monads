@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from functools import wraps
 from typing import TYPE_CHECKING, Generic, ParamSpec, Protocol, TypeVar, overload
 
+from typing_extensions import runtime_checkable
+
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from typing import Literal
@@ -61,6 +63,7 @@ class EmptyMaybeError(Exception):
     """
 
 
+@runtime_checkable
 class Maybe(Protocol[T]):
 
     """Base Class for Option, do not directly instantiate.

@@ -8,7 +8,16 @@ from __future__ import annotations
 import inspect
 from dataclasses import dataclass
 from functools import wraps
-from typing import TYPE_CHECKING, Generic, ParamSpec, Protocol, TypeVar, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    Generic,
+    ParamSpec,
+    Protocol,
+    TypeVar,
+    cast,
+    overload,
+    runtime_checkable,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -60,6 +69,7 @@ class Propagation(Generic[E], Exception):  # noqa: N818
         self.err = err
 
 
+@runtime_checkable
 class Result(Protocol[T, E]):
 
     """Base Class for Option, do not directly instantiate"""
@@ -318,7 +328,8 @@ class Error(Result[T, E]):
 
     def unwrap(self, msg: str | None = None) -> T:
         e: Exception
-        e = self._held if isinstance(self._held, Exception) else WrapError(self._held)
+        e = self._held if isinstance(
+            self._held, Exception) else WrapError(self._held)
         raise UnwrapError(msg or 'Attempted to unwrap an Error') from e
 
     def unwrap_or(self, fallback: T) -> T:
@@ -484,8 +495,10 @@ if TYPE_CHECKING:
 @overload
 def wrap() -> _WrapDecorator[Exception]: ...
 
+
 @overload
 def wrap(catch: type[X] | tuple[type[X], ...]) -> _WrapDecorator[X]: ...
+
 
 def wrap(catch: type[X] | tuple[type[X], ...] | None = None) -> _WrapDecorator[X]:
     """Decorator for wrapping throwing functions to return a Result instead
@@ -539,7 +552,7 @@ def unwrap(f: Callable[P, Result[R, E]]) -> Callable[P, R]: ...
 
 @overload
 def unwrap(f: Callable[P, Awaitable[Result[R, E]]]
-                  ) -> Callable[P, Awaitable[R]]: ...
+           ) -> Callable[P, Awaitable[R]]: ...
 
 
 def unwrap(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]

@@ -25,6 +25,9 @@
     "Optional",
     "Result",
   ]
+  dependencies = [
+    "typing-extensions"
+  ]
 
 [project.optional-dependencies]
   test = [

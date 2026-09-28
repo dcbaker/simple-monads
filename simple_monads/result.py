@@ -564,6 +564,10 @@ def unwrap(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
     handling than simply catching all exceptions and putting them in the Result
     you will need to handle that yourself.
 
+    .. Warning::
+
+        When using this with :func:`stop`, stop must be applied before unwrap.
+
     :param f: A callable to unwrap
     :raises WrapError: if E is not an Exception type
     :raises E: any values of E that are Exceptions
@@ -610,6 +614,10 @@ def stop(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
 
     This is required to catch the propagated Error, and ensure that it is
     returned instead of continuing to go up the stack.
+
+    .. Warning::
+
+        When using this with :func:`unwrap`, unwrap must be applied after stop.
 
     >>> @wrap
     ... def h(v: str) -> Result[int, Exception]:

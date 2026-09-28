@@ -526,22 +526,22 @@ def wrap(catch: type[X] | tuple[type[X], ...] | None = None) -> _WrapDecorator[X
                 ) -> Callable[P, Awaitable[Result[R, X]]] | Callable[P, Result[R, X]]:  # noqa: E501
         if is_async_function(f):
             @wraps(f)
-            async def ainner(*args: P.args, **kwargs: P.kwargs) -> Result[R, X]:
+            async def async_inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, X]:
                 try:
                     return Success(await f(*args, **kwargs))
                 except catch as e:
                     return Error(e)
 
-            return ainner
+            return async_inner
         else:
             @wraps(f)
-            def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, X]:
+            def sync_inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, X]:
                 try:
                     return Success(f(*args, **kwargs))
                 except catch as e:
                     return Error(e)
 
-            return inner
+            return sync_inner
 
     return wrapper
 
@@ -571,7 +571,7 @@ def unwrap(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
     """
     if is_async_function(f):
         @wraps(f)
-        async def ainner(*args: P.args, **kwargs: P.kwargs) -> R:
+        async def async_inner(*args: P.args, **kwargs: P.kwargs) -> R:
             result = await f(*args, **kwargs)
             if result.is_ok():
                 return result.unwrap()
@@ -580,10 +580,10 @@ def unwrap(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
                 raise err
             raise WrapError(err)
 
-        return ainner
+        return async_inner
     else:
         @wraps(f)
-        def inner(*args: P.args, **kwargs: P.kwargs) -> R:
+        def sync_inner(*args: P.args, **kwargs: P.kwargs) -> R:
             result = f(*args, **kwargs)
             if result.is_ok():
                 return result.unwrap()
@@ -592,7 +592,7 @@ def unwrap(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
                 raise err
             raise WrapError(err)
 
-        return inner
+        return sync_inner
 
 
 @overload
@@ -643,19 +643,19 @@ def stop(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
     """
     if is_async_function(f):
         @wraps(f)
-        async def ainner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
+        async def async_inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
             try:
                 return await f(*args, **kwargs)
             except Propagation as e:
                 return Error(e.err)
 
-        return ainner
+        return async_inner
     else:
         @wraps(f)
-        def inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
+        def sync_inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
             try:
                 return f(*args, **kwargs)
             except Propagation as e:
                 return Error(e.err)
 
-        return inner
+        return sync_inner

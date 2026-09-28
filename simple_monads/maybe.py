@@ -652,7 +652,7 @@ def wrap(f: Callable[P, R | None] | Callable[P, Awaitable[R | None]]
 
     :param f: A callable returning a type R or None
     :return: A new callable return :class:`Maybe[R]`, where a non-null are
-        :class:`Success`, and None is :class:`Nothing`
+        :class:`Something`, and None is :class:`Nothing`
     """
     if iscoroutine(f):
         @wraps(f)

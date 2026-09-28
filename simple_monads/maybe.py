@@ -38,7 +38,7 @@ __all__ = [
 ]
 
 
-def iscoroutine(f: Callable[P, R | Awaitable[R]]) -> TypeIs[Callable[P, Awaitable[R]]]:
+def is_async_callable(f: Callable[P, R | Awaitable[R]]) -> TypeIs[Callable[P, Awaitable[R]]]:
     """Type guard helper for async vs sync functions"""
     return inspect.iscoroutinefunction(f)
 
@@ -654,7 +654,7 @@ def wrap(f: Callable[P, R | None] | Callable[P, Awaitable[R | None]]
     :return: A new callable return :class:`Maybe[R]`, where a non-null are
         :class:`Something`, and None is :class:`Nothing`
     """
-    if iscoroutine(f):
+    if is_async_callable(f):
         @wraps(f)
         async def async_innner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
             return maybe(await f(*args, **kwargs))
@@ -721,7 +721,7 @@ def unwrap(f: Callable[P, Maybe[R]] | Callable[P, Awaitable[Maybe[R]]]
     :param f: A callable returning a :class:`Maybe[T]`
     :return: A new callable returning a `T | None`
     """
-    if iscoroutine(f):
+    if is_async_callable(f):
         @wraps(f)
         async def async_inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
             return (await f(*args, **kwargs)).get()
@@ -766,7 +766,7 @@ def stop(f: Callable[P, Awaitable[Maybe[R]]] | Callable[P, Maybe[R]]
     :return: The original function wrapped to handle Propagation Exceptions
     """
 
-    if iscoroutine(f):
+    if is_async_callable(f):
         @wraps(f)
         async def async_inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
             try:

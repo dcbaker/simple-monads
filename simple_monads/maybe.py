@@ -747,8 +747,11 @@ def stop(f: Callable[P, Awaitable[Maybe[R]]] | Callable[P, Maybe[R]]
          ) -> Callable[P, Awaitable[Maybe[R]]] | Callable[P, Maybe[R]]:
     """Decorator for functions that use :meth:`Maybe.propagate`.
 
-    This is required to catch the propagated Error, and ensure that it is
-    returned instead of continuing to go up the stack.
+    This catches a propogated :class:`Propagation` exception and returns
+    `Nothing()` instead.
+
+    In practice this allows implementing patterns similar to the `?` operator in
+    Rust.
 
     >>> def g() -> Maybe[str]:
     ...     return Nothing()
@@ -761,6 +764,13 @@ def stop(f: Callable[P, Awaitable[Maybe[R]]] | Callable[P, Maybe[R]]
 
     >>> f()
     Nothing()
+
+    .. Warning::
+
+        This uses exception catching for control flow. This is an anti-pattern
+        and there are potential problems with this approach. Unfortunately, there
+        isn't a better alternative for implementing such a useful feature without
+        Python language changes.
 
     :param f: The function to wrap
     :return: The original function wrapped to handle Propagation Exceptions

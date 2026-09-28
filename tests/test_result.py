@@ -12,6 +12,7 @@ from simple_monads.result import (
     Result,
     Success,
     UnwrapError,
+    WrapError,
     stop,
     unwrap,
     wrap,
@@ -453,6 +454,17 @@ class TestPropagate:
             raise ValueError('foo')
 
         with pytest.raises(ValueError, match='foo'):
+            inner()
+
+    def test_propogate_unwrap(self) -> None:
+        @unwrap
+        @stop
+        def inner() -> Result[str, int]:
+            r: Result[str, int] = Error(4)
+            x = r.propagate()
+            return Success(x + 'bar')
+
+        with pytest.raises(WrapError, match='4'):
             inner()
 
     @pytest.mark.asyncio

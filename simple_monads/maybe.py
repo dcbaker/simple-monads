@@ -656,16 +656,16 @@ def wrap(f: Callable[P, R | None] | Callable[P, Awaitable[R | None]]
     """
     if iscoroutine(f):
         @wraps(f)
-        async def ainner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
+        async def async_innner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
             return maybe(await f(*args, **kwargs))
 
-        return ainner
+        return async_innner
     else:
         @wraps(f)
-        def inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
+        def sync_inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
             return maybe(f(*args, **kwargs))
 
-        return inner
+        return sync_inner
 
 
 @overload
@@ -723,16 +723,16 @@ def unwrap(f: Callable[P, Maybe[R]] | Callable[P, Awaitable[Maybe[R]]]
     """
     if iscoroutine(f):
         @wraps(f)
-        async def ainner(*args: P.args, **kwargs: P.kwargs) -> R | None:
+        async def async_inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
             return (await f(*args, **kwargs)).get()
 
-        return ainner
+        return async_inner
     else:
         @wraps(f)
-        def inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
+        def sync_inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
             return f(*args, **kwargs).get()
 
-        return inner
+        return sync_inner
 
 
 @overload
@@ -768,19 +768,19 @@ def stop(f: Callable[P, Awaitable[Maybe[R]]] | Callable[P, Maybe[R]]
 
     if iscoroutine(f):
         @wraps(f)
-        async def ainner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
+        async def async_inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
             try:
                 return await f(*args, **kwargs)
             except Propagation:
                 return Nothing()
 
-        return ainner
+        return async_inner
     else:
         @wraps(f)
-        def inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
+        def sync_inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
             try:
                 return f(*args, **kwargs)
             except Propagation:
                 return Nothing()
 
-        return inner
+        return sync_inner

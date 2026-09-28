@@ -584,10 +584,18 @@ class Nothing(Maybe[T]):
         raise Propagation()
 
 
+@overload
+def maybe(result: None) -> Nothing[T]: ...
+
+
+@overload
+def maybe(result: T) -> Something[T]: ...
+
+
 def maybe(result: T | None) -> Maybe[T]:
     """Convenience function to convert T | None into Maybe[T].
 
-    This can convert python code using the standard T | None Optional.
+    This can convert python code using the standard T | None into a Maybe[T].
     This works correctly only when None is not a valid member of T
 
     >>> maybe(0)

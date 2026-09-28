@@ -400,6 +400,15 @@ class TestPropagate:
 
         assert inner() == Something('foobar')
 
+    def test_non_propagation_error(self) -> None:
+        @stop
+        def inner() -> Maybe[str]:
+            raise ValueError("This is not a propagation error")
+            return Nothing()  # type: ignore[unreachable]
+
+        with pytest.raises(ValueError):
+            _ = inner()
+
     @pytest.mark.asyncio
     async def test_prop_async(self) -> None:
         @stop
@@ -419,3 +428,13 @@ class TestPropagate:
             return Something(x + 'bar')
 
         assert await inner() == Something('foobar')
+
+    @pytest.mark.asyncio
+    async def test_non_propagation_error_async(self) -> None:
+        @stop
+        async def inner() -> Maybe[str]:
+            raise ValueError("This is not a propagation error")
+            return Nothing()  # type: ignore[unreachable]
+
+        with pytest.raises(ValueError):
+            _ = await inner()

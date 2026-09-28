@@ -47,7 +47,7 @@ __all__ = [
 ]
 
 
-def iscoroutine(f: Callable[P, R | Awaitable[R]]) -> TypeIs[Callable[P, Awaitable[R]]]:
+def is_async_function(f: Callable[P, R | Awaitable[R]]) -> TypeIs[Callable[P, Awaitable[R]]]:
     """Type guard helper for async vs sync functions"""
     return inspect.iscoroutinefunction(f)
 
@@ -524,7 +524,7 @@ def wrap(catch: type[X] | tuple[type[X], ...] | None = None) -> _WrapDecorator[X
 
     def wrapper(f: Callable[P, Awaitable[R]] | Callable[P, R]
                 ) -> Callable[P, Awaitable[Result[R, X]]] | Callable[P, Result[R, X]]:  # noqa: E501
-        if iscoroutine(f):
+        if is_async_function(f):
             @wraps(f)
             async def ainner(*args: P.args, **kwargs: P.kwargs) -> Result[R, X]:
                 try:
@@ -569,7 +569,7 @@ def unwrap(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
     :raises E: any values of E that are Exceptions
     :return: the value of a Success
     """
-    if iscoroutine(f):
+    if is_async_function(f):
         @wraps(f)
         async def ainner(*args: P.args, **kwargs: P.kwargs) -> R:
             result = await f(*args, **kwargs)
@@ -641,7 +641,7 @@ def stop(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
     :param f: The function to wrap
     :return: The original function wrapped to handle Propagation Exceptions
     """
-    if iscoroutine(f):
+    if is_async_function(f):
         @wraps(f)
         async def ainner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
             try:

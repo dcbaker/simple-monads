@@ -447,6 +447,14 @@ class TestPropagate:
 
         assert inner() == Success('foobar')
 
+    def test_doesnt_catch_other_exceptions(self) -> None:
+        @stop
+        def inner() -> Result[str, int]:
+            raise ValueError('foo')
+
+        with pytest.raises(ValueError, match='foo'):
+            inner()
+
     @pytest.mark.asyncio
     async def test_prop_async(self) -> None:
         @stop
@@ -466,3 +474,12 @@ class TestPropagate:
             return Success(x + 'bar')
 
         assert await inner() == Success('foobar')
+
+    @pytest.mark.asyncio
+    async def test_doesnt_catch_other_exceptions_async(self) -> None:
+        @stop
+        async def inner() -> Result[str, int]:
+            raise ValueError('foo')
+
+        with pytest.raises(ValueError, match='foo'):
+            await inner()

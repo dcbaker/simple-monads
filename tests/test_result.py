@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import assert_type, cast
 
 import pytest
 
@@ -472,3 +472,81 @@ class TestPropagate:
 
         with pytest.raises(ValueError, match='foo'):
             await inner()
+
+
+def test_returning_narrow_result() -> None:
+
+    @stop
+    def inner() -> Result[str | int, int]:
+        def inner2() -> Result[str, int]:
+            return Success('foo')
+
+        r: Result[str, int] = inner2()
+        return r
+
+    assert inner() == Success('foo')
+
+
+def test_returning_narrow_error_result() -> None:
+    def inner() -> Result[str, int]:
+        return Error(4)
+
+    def outer() -> Result[str, int | str]:
+        return inner()
+
+    assert outer() == Error(4)
+
+
+class TestResultCovariance:
+    @pytest.mark.parametrize('is_error', [False, True])
+    def test_fallbacks(self, is_error: bool) -> None:
+        result: Result[str, int] = Error(4) if is_error else Success('foo')
+        expected = 5 if is_error else 'foo'
+
+        assert assert_type(result.unwrap_or(5), str | int) == expected
+        assert assert_type(result.unwrap_or_else(lambda: 5), str | int) == expected
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('is_error', [False, True])
+    async def test_fallback_async(self, is_error: bool) -> None:
+        async def fallback() -> int:
+            return 5
+
+        result: Result[str, int] = Error(4) if is_error else Success('foo')
+        actual = await result.unwrap_or_else_async(fallback)
+        assert assert_type(actual, str | int) == (5 if is_error else 'foo')
+
+    @pytest.mark.parametrize('is_error', [False, True])
+    def test_callbacks(self, is_error: bool) -> None:
+        def and_callback(value: str) -> Result[int, str]:
+            return Error(value)
+
+        def or_callback(error: int) -> Result[int, str]:
+            return Success(error)
+
+        result: Result[str, int] = Error(4) if is_error else Success('foo')
+        chained = result.and_then(and_callback)
+        recovered = result.or_else(or_callback)
+        expected_chained: Result[int, int | str] = Error(4) if is_error else Error('foo')
+        expected_recovered: Result[str | int, str] = Success(4) if is_error else Success('foo')
+
+        assert assert_type(chained, Result[int, int | str]) == expected_chained
+        assert assert_type(recovered, Result[str | int, str]) == expected_recovered
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('is_error', [False, True])
+    async def test_callbacks_async(self, is_error: bool) -> None:
+        async def and_callback(value: str) -> Result[int, str]:
+            return Error(value)
+
+        async def or_callback(error: int) -> Result[int, str]:
+            return Success(error)
+
+        result: Result[str, int] = Error(4) if is_error else Success('foo')
+        chained = await result.and_then_async(and_callback)
+        recovered = await result.or_else_async(or_callback)
+        expected_chained: Result[int, int | str] = Error(4) if is_error else Error('foo')
+        expected_recovered: Result[str | int, str] = Success(4) if is_error else Success('foo')
+
+        assert assert_type(chained, Result[int, int | str]) == expected_chained
+        assert assert_type(recovered, Result[str | int, str]) == expected_recovered

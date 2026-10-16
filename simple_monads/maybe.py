@@ -638,8 +638,8 @@ def maybe(result: T | None) -> Maybe[T]:
 
 
 @overload
-def wrap(
-    f: Callable[P, Awaitable[R | None]],  # type: ignore[overload-overlap]
+def wrap(  # type: ignore[overload-overlap]
+    f: Callable[P, Awaitable[R | None]],
 ) -> Callable[P, Awaitable[Maybe[R]]]: ...
 
 

@@ -28,11 +28,11 @@ if TYPE_CHECKING:
 
 P = ParamSpec('P')
 R = TypeVar('R')
-T = TypeVar('T')
+T = TypeVar('T', covariant=True)
 U = TypeVar('U')
-E = TypeVar('E')
+E = TypeVar('E', covariant=True)
 F = TypeVar('F')
-X = TypeVar('X', bound=Exception)
+X = TypeVar('X', bound=Exception, covariant=True)
 
 __all__ = [
     'Error',
@@ -92,7 +92,7 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
-    def unwrap_or(self, fallback: T) -> T:
+    def unwrap_or(self, fallback: U) -> T | U:
         """Return the held value or fallback if this is an Error.
 
         :param fallback: A value to use incase of Error
@@ -100,7 +100,7 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
-    def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
+    def unwrap_or_else(self, fallback: Callable[[], U]) -> T | U:
         """Return the held value or the result of the fallback.
 
         :param fallback: A callable to generate a result if this in Error
@@ -108,7 +108,7 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
-    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[T]]) -> T:
+    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[U]]) -> T | U:
         """Return the held value or the result of the fallback.
 
         >>> import asyncio
@@ -239,7 +239,7 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
-    def and_then(self, cb: Callable[[T], Result[U, E]]) -> Result[U, E]:
+    def and_then(self, cb: Callable[[T], Result[U, F]]) -> Result[U, E | F]:
         """Run the callback if this is a Success, otherwise return the Err unchanged
 
         :param cb: A callback run on the held value of a Success
@@ -247,7 +247,7 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
-    async def and_then_async(self, cb: Callable[[T], Awaitable[Result[U, E]]]) -> Result[U, E]:
+    async def and_then_async(self, cb: Callable[[T], Awaitable[Result[U, F]]]) -> Result[U, E | F]:
         """Run the callback if this is a Success, otherwise return the Err unchanged
 
         >>> import asyncio
@@ -263,7 +263,7 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
-    def or_else(self, cb: Callable[[E], Result[T, F]]) -> Result[T, F]:
+    def or_else(self, cb: Callable[[E], Result[U, F]]) -> Result[T | U, F]:
         """Run the callback if this is an Error, otherwise return the Success unchanged
 
         :param cb: A callback run on the held value of a Error
@@ -271,7 +271,7 @@ class Result(Generic[T, E]):
         """
         raise NotImplementedError()
 
-    async def or_else_async(self, cb: Callable[[E], Awaitable[Result[T, F]]]) -> Result[T, F]:
+    async def or_else_async(self, cb: Callable[[E], Awaitable[Result[U, F]]]) -> Result[T | U, F]:
         """Run the callback if this is an Error, otherwise return the Success unchanged
 
         >>> import asyncio
@@ -352,13 +352,13 @@ class Error(Result[T, E]):
         e = self._held if isinstance(self._held, Exception) else WrapError(self._held)
         raise UnwrapError(msg or 'Attempted to unwrap an Error') from e
 
-    def unwrap_or(self, fallback: T) -> T:
+    def unwrap_or(self, fallback: U) -> T | U:
         return fallback
 
-    def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
+    def unwrap_or_else(self, fallback: Callable[[], U]) -> T | U:
         return fallback()
 
-    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[T]]) -> T:
+    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[U]]) -> T | U:
         return await fallback()
 
     def unwrap_err(self, msg: str | None = None) -> E:
@@ -390,16 +390,16 @@ class Error(Result[T, E]):
     ) -> U:
         return await default()
 
-    def and_then(self, cb: Callable[[T], Result[U, E]]) -> Result[U, E]:
+    def and_then(self, cb: Callable[[T], Result[U, F]]) -> Result[U, E | F]:
         return Error(self._held)
 
-    async def and_then_async(self, cb: Callable[[T], Awaitable[Result[U, E]]]) -> Result[U, E]:
+    async def and_then_async(self, cb: Callable[[T], Awaitable[Result[U, F]]]) -> Result[U, E | F]:
         return Error(self._held)
 
-    def or_else(self, cb: Callable[[E], Result[T, F]]) -> Result[T, F]:
+    def or_else(self, cb: Callable[[E], Result[U, F]]) -> Result[T | U, F]:
         return cb(self._held)
 
-    async def or_else_async(self, cb: Callable[[E], Awaitable[Result[T, F]]]) -> Result[T, F]:
+    async def or_else_async(self, cb: Callable[[E], Awaitable[Result[U, F]]]) -> Result[T | U, F]:
         return await cb(self._held)
 
     def err(self) -> Maybe[E]:
@@ -439,13 +439,13 @@ class Success(Result[T, E]):
     def unwrap(self, msg: str | None = None) -> T:
         return self._held
 
-    def unwrap_or(self, fallback: T) -> T:
+    def unwrap_or(self, fallback: U) -> T | U:
         return self._held
 
-    def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
+    def unwrap_or_else(self, fallback: Callable[[], U]) -> T | U:
         return self._held
 
-    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[T]]) -> T:
+    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[U]]) -> T | U:
         return self._held
 
     def unwrap_err(self, msg: str | None = None) -> E:
@@ -479,16 +479,16 @@ class Success(Result[T, E]):
     ) -> U:
         return await cb(self._held)
 
-    def and_then(self, cb: Callable[[T], Result[U, E]]) -> Result[U, E]:
+    def and_then(self, cb: Callable[[T], Result[U, F]]) -> Result[U, E | F]:
         return cb(self._held)
 
-    async def and_then_async(self, cb: Callable[[T], Awaitable[Result[U, E]]]) -> Result[U, E]:
+    async def and_then_async(self, cb: Callable[[T], Awaitable[Result[U, F]]]) -> Result[U, E | F]:
         return await cb(self._held)
 
-    def or_else(self, cb: Callable[[E], Result[T, F]]) -> Result[T, F]:
+    def or_else(self, cb: Callable[[E], Result[U, F]]) -> Result[T | U, F]:
         return Success(self._held)
 
-    async def or_else_async(self, cb: Callable[[E], Awaitable[Result[T, F]]]) -> Result[T, F]:
+    async def or_else_async(self, cb: Callable[[E], Awaitable[Result[U, F]]]) -> Result[T | U, F]:
         return Success(self._held)
 
     def err(self) -> Maybe[E]:
@@ -511,9 +511,9 @@ if TYPE_CHECKING:
         """Callable shape returned by :func:`wrap`, preserving overload resolution."""
 
         @overload
-        def __call__(
+        def __call__(  # type: ignore[overload-overlap]
             self,
-            f: Callable[P, Awaitable[R]],  # type: ignore[overload-overlap]
+            f: Callable[P, Awaitable[R]],
         ) -> Callable[P, Awaitable[Result[R, X]]]: ...
 
         @overload
@@ -544,8 +544,8 @@ def wrap(catch: type[X] | tuple[type[X], ...] | None = None) -> _WrapDecorator[X
         catch = cast('type[X]', Exception)
 
     @overload
-    def wrapper(
-        f: Callable[P, Awaitable[R]],  # type: ignore[overload-overlap]
+    def wrapper(  # type: ignore[overload-overlap]
+        f: Callable[P, Awaitable[R]],
     ) -> Callable[P, Awaitable[Result[R, X]]]: ...
 
     @overload

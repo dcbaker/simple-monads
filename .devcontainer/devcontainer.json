@@ -26,7 +26,17 @@
         "ms-python.vscode-pylance",
         "njpwerner.autodocstring",
         "tamasfe.even-better-toml",
-      ]
+      ],
+      "settings": {
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+          }
+        }
+      }
     }
   },
 

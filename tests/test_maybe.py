@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import assert_type, cast
 
 import pytest
 
@@ -279,6 +279,50 @@ class TestMaybe:
                     assert True
                 case _:
                     pytest.fail()
+
+
+class TestMaybeCovariance:
+    @pytest.mark.parametrize('is_nothing', [False, True])
+    def test_returning_narrow_maybe(self, is_nothing: bool) -> None:
+        def narrow() -> Maybe[str]:
+            return Nothing() if is_nothing else Something('foo')
+
+        @stop
+        def broad() -> Maybe[str | int]:
+            return narrow()
+
+        expected: Maybe[str | int] = Nothing() if is_nothing else Something('foo')
+        assert assert_type(broad(), Maybe[str | int]) == expected
+
+    @pytest.mark.parametrize('is_nothing', [False, True])
+    def test_fallbacks(self, is_nothing: bool) -> None:
+        value: Maybe[str] = Nothing() if is_nothing else Something('foo')
+        expected = 5 if is_nothing else 'foo'
+        expected_maybe: Maybe[str | int] = Something(expected)
+
+        assert assert_type(value.get(), str | None) == (None if is_nothing else 'foo')
+        assert assert_type(value.get(5), str | int | None) == expected
+        assert assert_type(value.unwrap_or(5), str | int) == expected
+        assert assert_type(value.unwrap_or_else(lambda: 5), str | int) == expected
+        assert assert_type(value.or_else(lambda: Something(5)), Maybe[str | int]) == expected_maybe
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('is_nothing', [False, True])
+    async def test_fallbacks_async(self, is_nothing: bool) -> None:
+        async def fallback() -> int:
+            return 5
+
+        async def maybe_fallback() -> Maybe[int]:
+            return Something(5)
+
+        value: Maybe[str] = Nothing() if is_nothing else Something('foo')
+        expected = 5 if is_nothing else 'foo'
+        expected_maybe: Maybe[str | int] = Something(expected)
+        unwrapped = await value.unwrap_or_else_async(fallback)
+        recovered = await value.or_else_async(maybe_fallback)
+
+        assert assert_type(unwrapped, str | int) == expected
+        assert assert_type(recovered, Maybe[str | int]) == expected_maybe
 
 
 class TestMaybeFunction:

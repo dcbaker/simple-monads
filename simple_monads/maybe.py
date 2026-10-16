@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 P = ParamSpec('P')
 R = TypeVar('R')
 E = TypeVar('E')
-T = TypeVar('T')
+T = TypeVar('T', covariant=True)
 U = TypeVar('U')
 
 __all__ = [
@@ -214,7 +214,7 @@ class Maybe(Generic[T]):
         """
         raise NotImplementedError()
 
-    def get(self, fallback: T | None = None) -> T | None:
+    def get(self, fallback: U | None = None) -> T | U | None:
         """Get the held value.
 
         Works much like Python's normal `.get()` methods, but never throws.
@@ -252,7 +252,7 @@ class Maybe(Generic[T]):
         """
         raise NotImplementedError()
 
-    def unwrap_or(self, fallback: T) -> T:
+    def unwrap_or(self, fallback: U) -> T | U:
         """Get the value or a fallback value.
 
         Unlike get() doesn't provide a fallback of None, which narrows type
@@ -269,7 +269,7 @@ class Maybe(Generic[T]):
         """
         raise NotImplementedError()
 
-    def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
+    def unwrap_or_else(self, fallback: Callable[[], U]) -> T | U:
         """Get the value or call the fallback to get a value
 
         >>> maybe(500).unwrap_or_else(lambda: 0)
@@ -278,12 +278,12 @@ class Maybe(Generic[T]):
         >>> maybe(None).unwrap_or_else(lambda: 0)
         0
 
-        :param fallback: A callable returning a type T
+        :param fallback: A callable returning a type U
         :return: The held value or the fallback
         """
         raise NotImplementedError()
 
-    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[T]]) -> T:
+    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[U]]) -> T | U:
         """Get the value or call the fallback to get a value
 
         >>> import asyncio
@@ -296,7 +296,7 @@ class Maybe(Generic[T]):
         >>> asyncio.run(maybe(None).unwrap_or_else_async(fb))
         0
 
-        :param fallback: An async callable returning a type T
+        :param fallback: An async callable returning a type U
         :return: The held value or the fallback
         """
         raise NotImplementedError()
@@ -326,7 +326,7 @@ class Maybe(Generic[T]):
         """
         raise NotImplementedError()
 
-    def or_else(self, fallback: Callable[[], Maybe[T]]) -> Maybe[T]:
+    def or_else(self, fallback: Callable[[], Maybe[U]]) -> Maybe[T | U]:
         """Run a callback to get a value if this is Nothing or return self.
 
         >>> maybe(500).or_else(lambda: maybe(100)).unwrap()
@@ -336,13 +336,13 @@ class Maybe(Generic[T]):
         100
 
         :param fallback: A callback to run if this is Nothing returning a
-            Maybe[T]
-        :return: A Maybe[T], which is self unchanged if this Something,
+            Maybe[U]
+        :return: A Maybe[T | U], which is self unchanged if this Something,
             otherwise the result of fallback
         """
         raise NotImplementedError()
 
-    async def or_else_async(self, fallback: Callable[[], Awaitable[Maybe[T]]]) -> Maybe[T]:
+    async def or_else_async(self, fallback: Callable[[], Awaitable[Maybe[U]]]) -> Maybe[T | U]:
         """Run a callback to get a value if this is Nothing or return self.
 
         >>> import asyncio
@@ -355,8 +355,8 @@ class Maybe(Generic[T]):
         100
 
         :param fallback: An async callback to run if this is Nothing returning a
-            Maybe[T]
-        :return: A Maybe[T], which is self unchanged if this Something,
+            Maybe[U]
+        :return: A Maybe[T | U], which is self unchanged if this Something,
             otherwise the result of fallback
         """
         raise NotImplementedError()
@@ -477,19 +477,19 @@ class Something(Maybe[T]):
     ) -> Maybe[U]:  # noqa: E501
         return Something(await cb(self._held))
 
-    def get(self, fallback: T | None = None) -> T | None:
+    def get(self, fallback: U | None = None) -> T | U | None:
         return self._held
 
     def unwrap(self, msg: str | None = None) -> T:
         return self._held
 
-    def unwrap_or(self, fallback: T) -> T:
+    def unwrap_or(self, fallback: U) -> T | U:
         return self._held
 
-    def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
+    def unwrap_or_else(self, fallback: Callable[[], U]) -> T | U:
         return self._held
 
-    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[T]]) -> T:
+    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[U]]) -> T | U:
         return self._held
 
     def and_then(self, cb: Callable[[T], Maybe[U]]) -> Maybe[U]:
@@ -498,10 +498,10 @@ class Something(Maybe[T]):
     async def and_then_async(self, cb: Callable[[T], Awaitable[Maybe[U]]]) -> Maybe[U]:
         return await cb(self._held)
 
-    def or_else(self, fallback: Callable[[], Maybe[T]]) -> Maybe[T]:
+    def or_else(self, fallback: Callable[[], Maybe[U]]) -> Maybe[T | U]:
         return self
 
-    async def or_else_async(self, fallback: Callable[[], Awaitable[Maybe[T]]]) -> Maybe[T]:
+    async def or_else_async(self, fallback: Callable[[], Awaitable[Maybe[U]]]) -> Maybe[T | U]:
         return self
 
     def ok_or(self, err: E) -> Result[T, E]:
@@ -561,7 +561,7 @@ class Nothing(Maybe[T]):
     ) -> Maybe[U]:  # noqa: E501
         return Something(await fallback())
 
-    def get(self, fallback: T | None = None) -> T | None:
+    def get(self, fallback: U | None = None) -> T | U | None:
         return fallback
 
     def unwrap(self, msg: str | None = None) -> T:
@@ -569,13 +569,13 @@ class Nothing(Maybe[T]):
             msg = 'Attempted to unwrap Nothing'
         raise EmptyMaybeError(msg)
 
-    def unwrap_or(self, fallback: T) -> T:
+    def unwrap_or(self, fallback: U) -> T | U:
         return fallback
 
-    def unwrap_or_else(self, fallback: Callable[[], T]) -> T:
+    def unwrap_or_else(self, fallback: Callable[[], U]) -> T | U:
         return fallback()
 
-    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[T]]) -> T:
+    async def unwrap_or_else_async(self, fallback: Callable[[], Awaitable[U]]) -> T | U:
         return await fallback()
 
     def and_then(self, cb: Callable[[T], Maybe[U]]) -> Maybe[U]:
@@ -584,10 +584,10 @@ class Nothing(Maybe[T]):
     async def and_then_async(self, cb: Callable[[T], Awaitable[Maybe[U]]]) -> Maybe[U]:
         return Nothing()
 
-    def or_else(self, fallback: Callable[[], Maybe[T]]) -> Maybe[T]:
+    def or_else(self, fallback: Callable[[], Maybe[U]]) -> Maybe[T | U]:
         return fallback()
 
-    async def or_else_async(self, fallback: Callable[[], Awaitable[Maybe[T]]]) -> Maybe[T]:
+    async def or_else_async(self, fallback: Callable[[], Awaitable[Maybe[U]]]) -> Maybe[T | U]:
         return await fallback()
 
     def ok_or(self, err: E) -> Result[T, E]:
@@ -610,14 +610,14 @@ class Nothing(Maybe[T]):
 
 
 @overload
-def maybe(result: None) -> Nothing[T]: ...
+def maybe(result: None) -> Nothing[U]: ...
 
 
 @overload
-def maybe(result: T) -> Something[T]: ...
+def maybe(result: U) -> Something[U]: ...
 
 
-def maybe(result: T | None) -> Maybe[T]:
+def maybe(result: U | None) -> Maybe[U]:
     """Convenience function to convert T | None into Maybe[T].
 
     This can convert python code using the standard T | None into a Maybe[T].

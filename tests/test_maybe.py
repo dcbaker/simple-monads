@@ -20,9 +20,7 @@ from simple_monads.maybe import (
 
 
 class TestMaybe:
-
     class TestMap:
-
         def test_something(self) -> None:
             s = Something(1).map(str)
             assert s == Something('1')
@@ -32,7 +30,6 @@ class TestMaybe:
             assert s == Nothing()
 
     class TestMapAsync:
-
         @staticmethod
         async def _helper(v: int) -> str:
             return str(v)
@@ -48,7 +45,6 @@ class TestMaybe:
             assert s == Nothing()
 
     class TestMapOr:
-
         def test_something(self) -> None:
             assert Something(1).map_or(str, '2') == Something('1')
 
@@ -56,7 +52,6 @@ class TestMaybe:
             assert Nothing().map_or(str, '2') == Something('2')
 
     class TestMapOrAsync:
-
         @staticmethod
         async def _helper(v: int) -> str:
             return str(v)
@@ -72,7 +67,6 @@ class TestMaybe:
             assert s == Something('5')
 
     class TestMapOrElse:
-
         def test_something(self) -> None:
             assert Something(1).map_or_else(str, lambda: '2') == Something('1')
 
@@ -80,7 +74,6 @@ class TestMaybe:
             assert Nothing().map_or_else(str, lambda: '2') == Something('2')
 
     class TestMapOrElseAsync:
-
         @staticmethod
         async def _cb(v: int) -> str:
             return str(v)
@@ -98,7 +91,6 @@ class TestMaybe:
             assert await Nothing().map_or_else_async(self._cb, self._fb) == Something('2')
 
     class TestGet:
-
         def test_something(self) -> None:
             assert Something(1).get() == 1
 
@@ -109,7 +101,6 @@ class TestMaybe:
             assert cast(Nothing[str], Nothing()).get('foo') == 'foo'
 
     class TestIsSomething:
-
         def test_something(self) -> None:
             assert Something(1).is_something()
 
@@ -117,7 +108,6 @@ class TestMaybe:
             assert not Nothing().is_something()
 
     class TestIsNothing:
-
         def test_something(self) -> None:
             assert not Something(1).is_nothing()
 
@@ -125,7 +115,6 @@ class TestMaybe:
             assert Nothing().is_nothing()
 
     class TestUnwrap:
-
         def test_something(self) -> None:
             assert Something('foo').unwrap() == 'foo'
 
@@ -139,7 +128,6 @@ class TestMaybe:
                 assert Nothing().unwrap(msg)
 
     class TestUnwrapOr:
-
         def test_something(self) -> None:
             assert Something('foo').unwrap_or('bar') == 'foo'
 
@@ -147,7 +135,6 @@ class TestMaybe:
             assert cast('Nothing[str]', Nothing()).unwrap_or('bar') == 'bar'
 
     class TestUnwrapOrElse:
-
         def test_something(self) -> None:
             assert Something('foo').unwrap_or_else(lambda: 'bar') == 'foo'
 
@@ -155,7 +142,6 @@ class TestMaybe:
             assert cast('Nothing[str]', Nothing()).unwrap_or_else(lambda: 'bar') == 'bar'
 
     class TestUnwrapOrElseAsync:
-
         @pytest.mark.asyncio
         async def test_something(self) -> None:
             async def cb() -> str:
@@ -173,7 +159,6 @@ class TestMaybe:
             assert v == 'bar'
 
     class TestBool:
-
         def test_something(self) -> None:
             assert Something('foo')
 
@@ -181,7 +166,6 @@ class TestMaybe:
             assert not Nothing()
 
     class TestAndThen:
-
         @staticmethod
         @wrap
         def to_int(v: str) -> int | None:
@@ -200,7 +184,6 @@ class TestMaybe:
             assert Nothing().and_then(self.to_int) == Nothing()
 
     class TestAndThenAsync:
-
         @pytest.mark.asyncio
         async def test_something(self) -> None:
             async def f(v: int) -> Maybe[str]:
@@ -218,7 +201,6 @@ class TestMaybe:
             assert v == Nothing()
 
     class TestOrElse:
-
         def test_something(self) -> None:
             _ = Something('foo').or_else(lambda: maybe('bar')) == Something('foo')
 
@@ -226,7 +208,6 @@ class TestMaybe:
             _ = cast('Nothing[str]', Nothing()).or_else(lambda: maybe('bar')) == Something('bar')
 
     class TestOrElseAsync:
-
         @pytest.mark.asyncio
         async def test_something(self) -> None:
             async def cb() -> Maybe[str]:
@@ -244,7 +225,6 @@ class TestMaybe:
             assert v == Something('bar')
 
     class TestOkOr:
-
         def test_something(self) -> None:
             _ = Something('foo').ok_or('bar').unwrap() == 'foo'
 
@@ -252,7 +232,6 @@ class TestMaybe:
             _ = cast('Nothing[str]', Nothing()).ok_or('bar').unwrap_err() == 'bar'
 
     class TestOkOrElse:
-
         def test_something(self) -> None:
             _ = Something('foo').ok_or_else(lambda: 'bar').unwrap() == 'foo'
 
@@ -260,7 +239,6 @@ class TestMaybe:
             _ = cast('Nothing[str]', Nothing()).ok_or_else(lambda: 'bar').unwrap_err() == 'bar'
 
     class TestOkOrElseAsync:
-
         @pytest.mark.asyncio
         async def test_something(self) -> None:
             async def cb() -> str:
@@ -278,7 +256,6 @@ class TestMaybe:
             assert v.unwrap_err() == 'bar'
 
     class TestMatch:
-
         def test_something(self) -> None:
             s = Something('foo')
             match s:
@@ -303,8 +280,8 @@ class TestMaybe:
                 case _:
                     pytest.fail()
 
-class TestMaybeFunction:
 
+class TestMaybeFunction:
     def test_something(self) -> None:
         assert maybe('foo') == Something('foo')
 
@@ -313,7 +290,6 @@ class TestMaybeFunction:
 
 
 class TestMaybeWrap:
-
     def test_something(self) -> None:
         @wrap
         def helper() -> str:
@@ -346,7 +322,6 @@ class TestMaybeWrap:
 
 
 class TestMaybeUnwrap:
-
     def test_something(self) -> None:
         @unwrap
         def helper() -> Maybe[str]:
@@ -379,7 +354,6 @@ class TestMaybeUnwrap:
 
 
 class TestPropagate:
-
     def test_prop(self) -> None:
 
         @stop
@@ -403,7 +377,7 @@ class TestPropagate:
     def test_non_propagation_error(self) -> None:
         @stop
         def inner() -> Maybe[str]:
-            raise ValueError("This is not a propagation error")
+            raise ValueError('This is not a propagation error')
             return Nothing()  # type: ignore[unreachable]
 
         with pytest.raises(ValueError):
@@ -433,7 +407,7 @@ class TestPropagate:
     async def test_non_propagation_error_async(self) -> None:
         @stop
         async def inner() -> Maybe[str]:
-            raise ValueError("This is not a propagation error")
+            raise ValueError('This is not a propagation error')
             return Nothing()  # type: ignore[unreachable]
 
         with pytest.raises(ValueError):

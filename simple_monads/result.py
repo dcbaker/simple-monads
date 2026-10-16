@@ -63,13 +63,14 @@ class Propagation(Generic[E], Exception):  # noqa: N818
     """Uses exception handling to propagate up."""
 
     def __init__(self, err: E) -> None:
-        super().__init__('Uncaught Propogation, did you forget to decorate '
-                         'function with @simple_monads.result.stop?')
+        super().__init__(
+            'Uncaught Propogation, did you forget to decorate '
+            'function with @simple_monads.result.stop?'
+        )
         self.err = err
 
 
 class Result(Generic[T, E]):
-
     """Base Class for Option, do not directly instantiate"""
 
     @staticmethod
@@ -218,7 +219,8 @@ class Result(Generic[T, E]):
         raise NotImplementedError()
 
     async def map_or_else_async(
-            self, default: Callable[[], Awaitable[U]], cb: Callable[[T], Awaitable[U]]) -> U:
+        self, default: Callable[[], Awaitable[U]], cb: Callable[[T], Awaitable[U]]
+    ) -> U:
         """Transform the held value or return the calculated default
 
         >>> import asyncio
@@ -327,7 +329,6 @@ class Result(Generic[T, E]):
 
 @dataclass(slots=True, frozen=True)
 class Error(Result[T, E]):
-
     """A Result holding an Error."""
 
     _held: E
@@ -348,8 +349,7 @@ class Error(Result[T, E]):
 
     def unwrap(self, msg: str | None = None) -> T:
         e: Exception
-        e = self._held if isinstance(
-            self._held, Exception) else WrapError(self._held)
+        e = self._held if isinstance(self._held, Exception) else WrapError(self._held)
         raise UnwrapError(msg or 'Attempted to unwrap an Error') from e
 
     def unwrap_or(self, fallback: T) -> T:
@@ -386,7 +386,8 @@ class Error(Result[T, E]):
         return default()
 
     async def map_or_else_async(
-            self, default: Callable[[], Awaitable[U]], cb: Callable[[T], Awaitable[U]]) -> U:
+        self, default: Callable[[], Awaitable[U]], cb: Callable[[T], Awaitable[U]]
+    ) -> U:
         return await default()
 
     def and_then(self, cb: Callable[[T], Result[U, E]]) -> Result[U, E]:
@@ -403,10 +404,12 @@ class Error(Result[T, E]):
 
     def err(self) -> Maybe[E]:
         from .maybe import Something
+
         return Something(self._held)
 
     def ok(self) -> Maybe[T]:
         from .maybe import Nothing
+
         return Nothing()
 
     def propagate(self) -> T:
@@ -415,7 +418,6 @@ class Error(Result[T, E]):
 
 @dataclass(slots=True, frozen=True)
 class Success(Result[T, E]):
-
     """A Result holding an value."""
 
     _held: T
@@ -473,7 +475,8 @@ class Success(Result[T, E]):
         return cb(self._held)
 
     async def map_or_else_async(
-            self, default: Callable[[], Awaitable[U]], cb: Callable[[T], Awaitable[U]]) -> U:
+        self, default: Callable[[], Awaitable[U]], cb: Callable[[T], Awaitable[U]]
+    ) -> U:
         return await cb(self._held)
 
     def and_then(self, cb: Callable[[T], Result[U, E]]) -> Result[U, E]:
@@ -490,10 +493,12 @@ class Success(Result[T, E]):
 
     def err(self) -> Maybe[E]:
         from .maybe import Nothing
+
         return Nothing()
 
     def ok(self) -> Maybe[T]:
         from .maybe import Something
+
         return Something(self._held)
 
     def propagate(self) -> T:
@@ -501,12 +506,15 @@ class Success(Result[T, E]):
 
 
 if TYPE_CHECKING:
+
     class _WrapDecorator(Protocol[X]):
         """Callable shape returned by :func:`wrap`, preserving overload resolution."""
 
         @overload
-        def __call__(self, f: Callable[P, Awaitable[R]]  # type: ignore[overload-overlap]
-                     ) -> Callable[P, Awaitable[Result[R, X]]]: ...
+        def __call__(
+            self,
+            f: Callable[P, Awaitable[R]],  # type: ignore[overload-overlap]
+        ) -> Callable[P, Awaitable[Result[R, X]]]: ...
 
         @overload
         def __call__(self, f: Callable[P, R]) -> Callable[P, Result[R, X]]: ...
@@ -536,15 +544,18 @@ def wrap(catch: type[X] | tuple[type[X], ...] | None = None) -> _WrapDecorator[X
         catch = cast('type[X]', Exception)
 
     @overload
-    def wrapper(f: Callable[P, Awaitable[R]]  # type: ignore[overload-overlap]
-                ) -> Callable[P, Awaitable[Result[R, X]]]: ...
+    def wrapper(
+        f: Callable[P, Awaitable[R]],  # type: ignore[overload-overlap]
+    ) -> Callable[P, Awaitable[Result[R, X]]]: ...
 
     @overload
     def wrapper(f: Callable[P, R]) -> Callable[P, Result[R, X]]: ...
 
-    def wrapper(f: Callable[P, Awaitable[R]] | Callable[P, R]
-                ) -> Callable[P, Awaitable[Result[R, X]]] | Callable[P, Result[R, X]]:  # noqa: E501
+    def wrapper(
+        f: Callable[P, Awaitable[R]] | Callable[P, R],
+    ) -> Callable[P, Awaitable[Result[R, X]]] | Callable[P, Result[R, X]]:  # noqa: E501
         if is_async_function(f):
+
             @wraps(f)
             async def async_inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, X]:
                 try:
@@ -554,6 +565,7 @@ def wrap(catch: type[X] | tuple[type[X], ...] | None = None) -> _WrapDecorator[X
 
             return async_inner
         else:
+
             @wraps(f)
             def sync_inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, X]:
                 try:
@@ -571,12 +583,12 @@ def unwrap(f: Callable[P, Result[R, E]]) -> Callable[P, R]: ...
 
 
 @overload
-def unwrap(f: Callable[P, Awaitable[Result[R, E]]]
-           ) -> Callable[P, Awaitable[R]]: ...
+def unwrap(f: Callable[P, Awaitable[Result[R, E]]]) -> Callable[P, Awaitable[R]]: ...
 
 
-def unwrap(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
-           ) -> Callable[P, R] | Callable[P, Awaitable[R]]:
+def unwrap(
+    f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]],
+) -> Callable[P, R] | Callable[P, Awaitable[R]]:
     """Decorator for unwrapping Result returning functions, return the result or
     throwing the Exception.
 
@@ -594,6 +606,7 @@ def unwrap(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
     :return: the value of a Success
     """
     if is_async_function(f):
+
         @wraps(f)
         async def async_inner(*args: P.args, **kwargs: P.kwargs) -> R:
             result = await f(*args, **kwargs)
@@ -606,6 +619,7 @@ def unwrap(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
 
         return async_inner
     else:
+
         @wraps(f)
         def sync_inner(*args: P.args, **kwargs: P.kwargs) -> R:
             result = f(*args, **kwargs)
@@ -620,16 +634,16 @@ def unwrap(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
 
 
 @overload
-def stop(f: Callable[P, Awaitable[Result[R, E]]]
-         ) -> Callable[P, Awaitable[Result[R, E]]]: ...
+def stop(f: Callable[P, Awaitable[Result[R, E]]]) -> Callable[P, Awaitable[Result[R, E]]]: ...
 
 
 @overload
 def stop(f: Callable[P, Result[R, E]]) -> Callable[P, Result[R, E]]: ...
 
 
-def stop(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
-         ) -> Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]:
+def stop(
+    f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]],
+) -> Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]:
     """Decorator for functions that use :meth:`Result.propagate`.
 
     This is required to catch the propagated Error, and ensure that it is
@@ -670,6 +684,7 @@ def stop(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
     :return: The original function wrapped to handle Propagation Exceptions
     """
     if is_async_function(f):
+
         @wraps(f)
         async def async_inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
             try:
@@ -679,6 +694,7 @@ def stop(f: Callable[P, Result[R, E]] | Callable[P, Awaitable[Result[R, E]]]
 
         return async_inner
     else:
+
         @wraps(f)
         def sync_inner(*args: P.args, **kwargs: P.kwargs) -> Result[R, E]:
             try:

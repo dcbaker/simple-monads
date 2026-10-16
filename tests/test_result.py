@@ -20,9 +20,7 @@ from simple_monads.result import (
 
 
 class TestResult:
-
     class TestUnwrap:
-
         def test_error(self) -> None:
             with pytest.raises(UnwrapError, match='Attempted to unwrap an Error'):
                 Error(Exception('foo')).unwrap()
@@ -36,7 +34,6 @@ class TestResult:
             assert Success('foo').unwrap() == 'foo'
 
     class TestUnwrapOr:
-
         def test_error(self) -> None:
             e: Result[str, Exception] = Error(Exception('foo'))
             assert e.unwrap_or('bar') == 'bar'
@@ -45,7 +42,6 @@ class TestResult:
             assert Success('foo').unwrap_or('bar') == 'foo'
 
     class TestUnwrapOrElse:
-
         def test_error(self) -> None:
             e: Result[str, Exception] = Error(Exception('foo'))
             assert e.unwrap_or_else(lambda: 'bar') == 'bar'
@@ -54,7 +50,6 @@ class TestResult:
             assert Success('foo').unwrap_or_else(lambda: 'bar') == 'foo'
 
     class TestUnwrapOrElseAsync:
-
         @pytest.mark.asyncio
         async def test_error(self) -> None:
             async def fb() -> str:
@@ -67,10 +62,10 @@ class TestResult:
         async def test_success(self) -> None:
             async def fb() -> str:
                 return 'bar'
+
             assert await Success('foo').unwrap_or_else_async(fb) == 'foo'
 
     class TestBool:
-
         def test_error(self) -> None:
             e: Result[str, Exception] = Error(Exception('foo'))
             assert not e
@@ -79,7 +74,6 @@ class TestResult:
             assert Success('foo')
 
     class TestIsErr:
-
         def test_error(self) -> None:
             e: Result[str, Exception] = Error(Exception('foo'))
             assert e.is_err()
@@ -88,7 +82,6 @@ class TestResult:
             assert not Success('foo').is_err()
 
     class TestIsOk:
-
         def test_error(self) -> None:
             e: Result[str, Exception] = Error(Exception('foo'))
             assert not e.is_ok()
@@ -97,7 +90,6 @@ class TestResult:
             assert Success('foo').is_ok()
 
     class TestUnwrapErr:
-
         def test_error(self) -> None:
             err = Exception('foo')
             e: Result[str, Exception] = Error(err)
@@ -113,7 +105,6 @@ class TestResult:
                 Success('foo').unwrap_err(msg)
 
     class TestMap:
-
         def test_error(self) -> None:
             e: Result[str, Exception] = Error(Exception('foo'))
             assert e.map(int) == cast(Result[int, Exception], e)
@@ -122,7 +113,6 @@ class TestResult:
             assert Success('1').map(int) == Success(1)
 
     class TestMapAsync:
-
         @pytest.mark.asyncio
         async def test_error(self) -> None:
             async def cb(v: str) -> int:
@@ -139,7 +129,6 @@ class TestResult:
             assert await Success('1').map_async(cb) == Success(1)
 
     class TestMapErr:
-
         def test_error(self) -> None:
             e: Result[str, str] = Error('1')
             assert e.map_err(int) == Error(1)
@@ -149,11 +138,11 @@ class TestResult:
             assert s.map_err(int) == cast(Success[str, int], s)
 
     class TestMapErrAsync:
-
         @pytest.mark.asyncio
         async def test_error(self) -> None:
             async def cb(v: str) -> int:
                 return int(v)
+
             e: Result[str, str] = Error('1')
             assert await e.map_err_async(cb) == Error(1)
 
@@ -161,11 +150,11 @@ class TestResult:
         async def test_success(self) -> None:
             async def cb(v: str) -> int:
                 pytest.fail()
+
             s: Success[str, str] = Success('1')
             assert await s.map_err_async(cb) == cast(Success[str, int], s)
 
     class TestMapOr:
-
         def test_error(self) -> None:
             e: Result[str, str] = Error('1')
             assert e.map_or('foo', lambda _: 'bar') == 'foo'
@@ -175,7 +164,6 @@ class TestResult:
             assert s.map_or('foo', lambda _: 'bar') == 'bar'
 
     class TestMapOrAsync:
-
         @pytest.mark.asyncio
         async def test_error(self) -> None:
             async def cb(v: str) -> str:
@@ -188,11 +176,11 @@ class TestResult:
         async def test_success(self) -> None:
             async def cb(v: str) -> str:
                 return 'bar'
+
             s: Success[str, str] = Success('1')
             assert await s.map_or_async('foo', cb) == 'bar'
 
     class TestMapOrElse:
-
         def test_error(self) -> None:
             e: Result[str, str] = Error('1')
             assert e.map_or_else(lambda: 'foo', lambda _: 'bar') == 'foo'
@@ -202,7 +190,6 @@ class TestResult:
             assert s.map_or_else(lambda: 'foo', lambda _: 'bar') == 'bar'
 
     class TestMapOrElseASync:
-
         @staticmethod
         async def _cb(v: int) -> int:
             return v + 5
@@ -222,7 +209,6 @@ class TestResult:
             assert await s.map_or_else_async(self._fb, self._cb) == 6
 
     class TestAndThen:
-
         @staticmethod
         def _cb(res: str) -> Result[int, str]:
             return Success(int(res))
@@ -236,7 +222,6 @@ class TestResult:
             assert s.and_then(self._cb) == Success(1)
 
     class TestAndThenAsync:
-
         @staticmethod
         async def _cb(res: str) -> Result[int, str]:
             return Success(int(res))
@@ -252,7 +237,6 @@ class TestResult:
             assert await s.and_then_async(self._cb) == Success(1)
 
     class TestOrElse:
-
         @staticmethod
         def _cb(res: str) -> Result[str, int]:
             return Error(int(res))
@@ -266,7 +250,6 @@ class TestResult:
             assert s.or_else(self._cb) == cast(Result[str, int], s)
 
     class TestOrElseAsync:
-
         @staticmethod
         async def _cb(res: str) -> Result[str, int]:
             return Error(int(res))
@@ -282,7 +265,6 @@ class TestResult:
             assert await s.or_else_async(self._cb) == cast(Result[str, int], s)
 
     class TestErr:
-
         def test_error(self) -> None:
             e: Result[str, int] = Error(4)
             assert e.err().unwrap() == 4
@@ -292,7 +274,6 @@ class TestResult:
             assert s.err().is_nothing()
 
     class TestOk:
-
         def test_error(self) -> None:
             e: Result[str, int] = Error(4)
             assert e.ok().is_nothing()
@@ -302,7 +283,6 @@ class TestResult:
             assert s.ok().unwrap() == 4
 
     class TestMatch:
-
         def test_error(self) -> None:
             e: Result[str, int] = Error(4)
             match e:
@@ -325,7 +305,6 @@ class TestResult:
 
 
 class TestWrapResult:
-
     def test_success(self) -> None:
         @wrap()
         def foo() -> str:
@@ -392,7 +371,6 @@ class TestWrapResult:
 
 
 class TestUnwrapResult:
-
     def test_success(self) -> None:
         @unwrap
         def foo() -> Result[str, ValueError]:
@@ -427,7 +405,6 @@ class TestUnwrapResult:
 
 
 class TestPropagate:
-
     def test_prop(self) -> None:
 
         @stop

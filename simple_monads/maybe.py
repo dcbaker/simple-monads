@@ -45,12 +45,13 @@ class Propagation(Generic[E], Exception):  # noqa: N818
     """Uses exception handling to propagate up."""
 
     def __init__(self) -> None:
-        super().__init__('Uncaught Propagation, did you forget to decorate '
-                         'function with @simple_monads.maybe.stop?')
+        super().__init__(
+            'Uncaught Propagation, did you forget to decorate '
+            'function with @simple_monads.maybe.stop?'
+        )
 
 
 class EmptyMaybeError(Exception):
-
     """Raised when calling :meth:`Maybe.unwrap` on an empty Maybe.
 
     It is advised to *not* catch this exception, as it is usually the result of
@@ -62,7 +63,6 @@ class EmptyMaybeError(Exception):
 
 
 class Maybe(Generic[T]):
-
     """Base Class for Option, do not directly instantiate.
 
     This class is not useful for instantiation, instead use either
@@ -190,7 +190,8 @@ class Maybe(Generic[T]):
         raise NotImplementedError()
 
     async def map_or_else_async(
-            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:  # noqa: E501
+        self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]
+    ) -> Maybe[U]:  # noqa: E501
         """Transform the held value using the callback, or use the fallback
         value asynchronously.
 
@@ -438,7 +439,6 @@ class Maybe(Generic[T]):
 
 @dataclass(slots=True, frozen=True)
 class Something(Maybe[T]):
-
     """A Maybe that holds a value."""
 
     _held: T
@@ -447,7 +447,7 @@ class Something(Maybe[T]):
         return True
 
     def __repr__(self) -> str:
-        return f"Something({self._held!r})"
+        return f'Something({self._held!r})'
 
     @staticmethod
     def is_something() -> Literal[True]:
@@ -473,7 +473,8 @@ class Something(Maybe[T]):
         return Something(cb(self._held))
 
     async def map_or_else_async(
-            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:  # noqa: E501
+        self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]
+    ) -> Maybe[U]:  # noqa: E501
         return Something(await cb(self._held))
 
     def get(self, fallback: T | None = None) -> T | None:
@@ -505,14 +506,17 @@ class Something(Maybe[T]):
 
     def ok_or(self, err: E) -> Result[T, E]:
         from .result import Success
+
         return Success(self._held)
 
     def ok_or_else(self, err: Callable[[], E]) -> Result[T, E]:
         from .result import Success
+
         return Success(self._held)
 
     async def ok_or_else_async(self, err: Callable[[], Awaitable[E]]) -> Result[T, E]:
         from .result import Success
+
         return Success(self._held)
 
     def propagate(self) -> T:
@@ -521,14 +525,13 @@ class Something(Maybe[T]):
 
 @dataclass(slots=True, frozen=True)
 class Nothing(Maybe[T]):
-
     """A Maybe that does not hold a value."""
 
     def __bool__(self) -> bool:
         return False
 
     def __repr__(self) -> str:
-        return "Nothing()"
+        return 'Nothing()'
 
     @staticmethod
     def is_something() -> Literal[False]:
@@ -554,7 +557,8 @@ class Nothing(Maybe[T]):
         return Something(fallback())
 
     async def map_or_else_async(
-            self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]) -> Maybe[U]:  # noqa: E501
+        self, cb: Callable[[T], Awaitable[U]], fallback: Callable[[], Awaitable[U]]
+    ) -> Maybe[U]:  # noqa: E501
         return Something(await fallback())
 
     def get(self, fallback: T | None = None) -> T | None:
@@ -588,14 +592,17 @@ class Nothing(Maybe[T]):
 
     def ok_or(self, err: E) -> Result[T, E]:
         from .result import Error
+
         return Error(err)
 
     def ok_or_else(self, err: Callable[[], E]) -> Result[T, E]:
         from .result import Error
+
         return Error(err())
 
     async def ok_or_else_async(self, err: Callable[[], Awaitable[E]]) -> Result[T, E]:
         from .result import Error
+
         return Error(await err())
 
     def propagate(self) -> T:
@@ -631,16 +638,18 @@ def maybe(result: T | None) -> Maybe[T]:
 
 
 @overload
-def wrap(f: Callable[P, Awaitable[R | None]]  # type: ignore[overload-overlap]
-         ) -> Callable[P, Awaitable[Maybe[R]]]: ...
+def wrap(
+    f: Callable[P, Awaitable[R | None]],  # type: ignore[overload-overlap]
+) -> Callable[P, Awaitable[Maybe[R]]]: ...
 
 
 @overload
 def wrap(f: Callable[P, R | None]) -> Callable[P, Maybe[R]]: ...
 
 
-def wrap(f: Callable[P, R | None] | Callable[P, Awaitable[R | None]]
-         ) -> Callable[P, Maybe[R]] | Callable[P, Awaitable[Maybe[R]]]:
+def wrap(
+    f: Callable[P, R | None] | Callable[P, Awaitable[R | None]],
+) -> Callable[P, Maybe[R]] | Callable[P, Awaitable[Maybe[R]]]:
     """Decorator (or wrapper) for common python code.
 
     Converts code returning T | None to return Maybe[T]
@@ -681,12 +690,14 @@ def wrap(f: Callable[P, R | None] | Callable[P, Awaitable[R | None]]
         :class:`Something`, and None is :class:`Nothing`
     """
     if is_async_callable(f):
+
         @wraps(f)
         async def async_innner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
             return maybe(await f(*args, **kwargs))
 
         return async_innner
     else:
+
         @wraps(f)
         def sync_inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
             return maybe(f(*args, **kwargs))
@@ -702,8 +713,9 @@ def unwrap(f: Callable[P, Awaitable[Maybe[R]]]) -> Callable[P, Awaitable[R | Non
 def unwrap(f: Callable[P, Maybe[R]]) -> Callable[P, R | None]: ...
 
 
-def unwrap(f: Callable[P, Maybe[R]] | Callable[P, Awaitable[Maybe[R]]]
-           ) -> Callable[P, R | None] | Callable[P, Awaitable[R | None]]:
+def unwrap(
+    f: Callable[P, Maybe[R]] | Callable[P, Awaitable[Maybe[R]]],
+) -> Callable[P, R | None] | Callable[P, Awaitable[R | None]]:
     """Decorator (or wrapper) to convert back to common Python.
 
     Converts code returning Maybe[T] to T | None.
@@ -748,12 +760,14 @@ def unwrap(f: Callable[P, Maybe[R]] | Callable[P, Awaitable[Maybe[R]]]
     :return: A new callable returning a `T | None`
     """
     if is_async_callable(f):
+
         @wraps(f)
         async def async_inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
             return (await f(*args, **kwargs)).get()
 
         return async_inner
     else:
+
         @wraps(f)
         def sync_inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
             return f(*args, **kwargs).get()
@@ -769,8 +783,9 @@ def stop(f: Callable[P, Awaitable[Maybe[R]]]) -> Callable[P, Awaitable[Maybe[R]]
 def stop(f: Callable[P, Maybe[R]]) -> Callable[P, Maybe[R]]: ...
 
 
-def stop(f: Callable[P, Awaitable[Maybe[R]]] | Callable[P, Maybe[R]]
-         ) -> Callable[P, Awaitable[Maybe[R]]] | Callable[P, Maybe[R]]:
+def stop(
+    f: Callable[P, Awaitable[Maybe[R]]] | Callable[P, Maybe[R]],
+) -> Callable[P, Awaitable[Maybe[R]]] | Callable[P, Maybe[R]]:
     """Decorator for functions that use :meth:`Maybe.propagate`.
 
     This catches a propogated :class:`Propagation` exception and returns
@@ -803,6 +818,7 @@ def stop(f: Callable[P, Awaitable[Maybe[R]]] | Callable[P, Maybe[R]]
     """
 
     if is_async_callable(f):
+
         @wraps(f)
         async def async_inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
             try:
@@ -812,6 +828,7 @@ def stop(f: Callable[P, Awaitable[Maybe[R]]] | Callable[P, Maybe[R]]
 
         return async_inner
     else:
+
         @wraps(f)
         def sync_inner(*args: P.args, **kwargs: P.kwargs) -> Maybe[R]:
             try:

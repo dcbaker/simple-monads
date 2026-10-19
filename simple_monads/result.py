@@ -15,13 +15,16 @@ from typing import (
     Protocol,
     TypeVar,
     cast,
+    get_args,
     overload,
 )
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
-    from typing import Literal, Protocol
+    from typing import Any, Literal, Protocol
 
+    from pydantic import GetCoreSchemaHandler
+    from pydantic_core import CoreSchema
     from typing_extensions import TypeIs
 
     from .maybe import Maybe
@@ -72,6 +75,41 @@ class Propagation(Generic[E], Exception):  # noqa: N818
 
 class Result(Generic[T, E]):
     """Base Class for Option, do not directly instantiate"""
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        """Validate wrapped results or raw values, preferring Success for raw values."""
+        from pydantic_core import core_schema
+
+        args = get_args(source_type)
+
+        def variant_schema(
+            variant: type[Success[Any, Any]] | type[Error[Any, Any]], index: int
+        ) -> CoreSchema:
+            def unwrap_value(value: Any) -> Any:
+                if isinstance(value, Result):
+                    if not isinstance(value, variant):
+                        raise ValueError(f'Expected {variant.__name__}')
+                    return value.unwrap() if variant is Success else value.unwrap_err()
+                return value
+
+            value_schema = (
+                handler.generate_schema(args[index]) if args else core_schema.any_schema()
+            )
+            return core_schema.no_info_before_validator_function(
+                unwrap_value,
+                core_schema.no_info_after_validator_function(variant, value_schema),
+            )
+
+        if issubclass(cls, Success):
+            return variant_schema(Success, 0)
+        if issubclass(cls, Error):
+            return variant_schema(Error, 1)
+        return core_schema.union_schema(
+            [variant_schema(Success, 0), variant_schema(Error, 1)], mode='left_to_right'
+        )
 
     @staticmethod
     def is_ok() -> bool:
@@ -333,6 +371,12 @@ class Error(Result[T, E]):
 
     _held: E
 
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        return super(Error, cls).__get_pydantic_core_schema__(source_type, handler)
+
     def __bool__(self) -> bool:
         return False
 
@@ -421,6 +465,12 @@ class Success(Result[T, E]):
     """A Result holding an value."""
 
     _held: T
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        return super(Success, cls).__get_pydantic_core_schema__(source_type, handler)
 
     def __bool__(self) -> bool:
         return True

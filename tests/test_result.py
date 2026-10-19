@@ -304,6 +304,92 @@ class TestResult:
                     pytest.fail()
 
 
+class TestPydantic:
+    @pytest.mark.parametrize('value', [1, '1', Success(1), Success('1')])
+    def test_success(self, value: object) -> None:
+        pydantic = pytest.importorskip('pydantic', minversion='2')
+        adapter = pydantic.TypeAdapter(Result[int, str])
+        assert adapter.validate_python(value) == Success(1)
+
+    @pytest.mark.parametrize(
+        ('value', 'expected'),
+        [
+            ('invalid', Error('invalid')),
+            (Error('invalid'), Error('invalid')),
+            (Error('1'), Error('1')),
+        ],
+    )
+    def test_error(self, value: object, expected: object) -> None:
+        pydantic = pytest.importorskip('pydantic', minversion='2')
+        adapter = pydantic.TypeAdapter(Result[int, str])
+        assert adapter.validate_python(value) == expected
+
+    @pytest.mark.parametrize('value', ['1', Error('1')])
+    def test_error_coercion(self, value: object) -> None:
+        pydantic = pytest.importorskip('pydantic', minversion='2')
+        adapter = pydantic.TypeAdapter(Result[list[int], int])
+        assert adapter.validate_python(value) == Error(1)
+
+    @pytest.mark.parametrize('value', [None, [], Success('invalid'), Error(1)])
+    def test_invalid(self, value: object) -> None:
+        pydantic = pytest.importorskip('pydantic', minversion='2')
+        adapter = pydantic.TypeAdapter(Result[int, str])
+        with pytest.raises(pydantic.ValidationError):
+            adapter.validate_python(value)
+
+    @pytest.mark.parametrize(
+        ('annotation', 'value', 'expected'),
+        [
+            (Result, 'foo', Success('foo')),
+            (Result, Error('foo'), Error('foo')),
+            (Success, 'foo', Success('foo')),
+            (Success, Success('foo'), Success('foo')),
+            (Error, 'foo', Error('foo')),
+            (Error, Error('foo'), Error('foo')),
+        ],
+    )
+    def test_unparameterized(self, annotation: object, value: object, expected: object) -> None:
+        pydantic = pytest.importorskip('pydantic', minversion='2')
+        assert pydantic.TypeAdapter(annotation).validate_python(value) == expected
+
+    @pytest.mark.parametrize('annotation, value', [(Success, Error(1)), (Error, Success(1))])
+    def test_wrong_variant(self, annotation: object, value: object) -> None:
+        pydantic = pytest.importorskip('pydantic', minversion='2')
+        with pytest.raises(pydantic.ValidationError):
+            pydantic.TypeAdapter(annotation).validate_python(value)
+
+    def test_model(self) -> None:
+        pytest.importorskip('pydantic', minversion='2')
+        from pydantic import BaseModel
+
+        class Model(BaseModel):
+            value: Result[int, str]
+
+        assert Model.model_validate({'value': '1'}).value == Success(1)
+        assert Model.model_validate({'value': Success(1)}).value == Success(1)
+        assert Model.model_validate({'value': 'invalid'}).value == Error('invalid')
+        assert Model.model_validate({'value': Error('1')}).value == Error('1')
+
+    def test_nested(self) -> None:
+        pydantic = pytest.importorskip('pydantic', minversion='2')
+        adapter = pydantic.TypeAdapter(Result[list[int], str])
+        assert adapter.validate_python(['1', 2]) == Success([1, 2])
+        assert adapter.validate_python(Success(['1', 2])) == Success([1, 2])
+
+    @pytest.mark.parametrize(
+        ('annotation', 'value', 'expected'),
+        [
+            (Result[int | None, str], None, Success(None)),
+            (Result[int | None, str], Success(None), Success(None)),
+            (Result[int, str | None], None, Error(None)),
+            (Result[int, str | None], Error(None), Error(None)),
+        ],
+    )
+    def test_none(self, annotation: object, value: object, expected: object) -> None:
+        pydantic = pytest.importorskip('pydantic', minversion='2')
+        assert pydantic.TypeAdapter(annotation).validate_python(value) == expected
+
+
 class TestWrapResult:
     def test_success(self) -> None:
         @wrap()

@@ -33,6 +33,7 @@
   test = [
     "pytest",
     "pytest-asyncio",
+    "pytest-examples",
   ]
 
   lint = [

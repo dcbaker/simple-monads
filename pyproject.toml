@@ -37,7 +37,8 @@
 
   lint = [
     "mypy",
-    "ruff"
+    "ruff",
+    "pydantic",
   ]
 
 [project.urls]

@@ -397,6 +397,66 @@ class TestMaybeUnwrap:
         assert await helper() is None
 
 
+class TestPydantic:
+    @pytest.mark.parametrize('annotation', [Maybe[int], Maybe[int] | Nothing])
+    @pytest.mark.parametrize('value', [1, '1', Something(1), Something('1')])
+    def test_something(self, annotation: object, value: object) -> None:
+        pydantic = pytest.importorskip('pydantic', minversion='2')
+        adapter = pydantic.TypeAdapter(annotation)
+        assert adapter.validate_python(value) == Something(1)
+
+    @pytest.mark.parametrize('annotation', [Maybe[int], Nothing, Something | Nothing])
+    @pytest.mark.parametrize('value', [None, Nothing()])
+    def test_nothing(self, annotation: object, value: object) -> None:
+        pydantic = pytest.importorskip('pydantic', minversion='2')
+        adapter = pydantic.TypeAdapter(annotation)
+        assert adapter.validate_python(value) == Nothing()
+
+    @pytest.mark.parametrize(
+        ('annotation', 'value'),
+        [
+            (Maybe[int], 'invalid'),
+            (Maybe[int], Something('invalid')),
+            (Nothing, 1),
+            (Nothing, Something(1)),
+        ],
+    )
+    def test_invalid(self, annotation: object, value: object) -> None:
+        pydantic = pytest.importorskip('pydantic', minversion='2')
+        adapter = pydantic.TypeAdapter(annotation)
+        with pytest.raises(pydantic.ValidationError):
+            adapter.validate_python(value)
+
+    def test_model(self) -> None:
+        pytest.importorskip('pydantic', minversion='2')
+        from pydantic import BaseModel
+
+        class Model(BaseModel):
+            value: Maybe[int]
+
+        assert Model.model_validate({'value': '1'}).value == Something(1)
+        assert Model.model_validate({'value': Something(1)}).value == Something(1)
+        assert Model.model_validate({'value': None}).value == Nothing()
+        assert Model.model_validate({'value': Nothing()}).value == Nothing()
+
+    @pytest.mark.parametrize('annotation', [Maybe, Something])
+    def test_unparameterized(self, annotation: object) -> None:
+        pydantic = pytest.importorskip('pydantic', minversion='2')
+        assert pydantic.TypeAdapter(annotation).validate_python('foo') == Something('foo')
+
+    @pytest.mark.parametrize('value', [1, Something(1)])
+    def test_variant_union(self, value: object) -> None:
+        pydantic = pytest.importorskip('pydantic', minversion='2')
+        adapter = pydantic.TypeAdapter(Something | Nothing)
+        assert adapter.validate_python(value) == Something(1)
+
+    def test_nested(self) -> None:
+        pydantic = pytest.importorskip('pydantic', minversion='2')
+        adapter = pydantic.TypeAdapter(Maybe[list[int]])
+        assert adapter.validate_python(['1', 2]) == Something([1, 2])
+        assert adapter.validate_python(Something(['1', 2])) == Something([1, 2])
+
+
 class TestPropagate:
     def test_prop(self) -> None:
 

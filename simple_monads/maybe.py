@@ -8,12 +8,14 @@ from __future__ import annotations
 import inspect
 from dataclasses import dataclass
 from functools import wraps
-from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar, overload
+from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar, get_args, overload
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
-    from typing import Literal
+    from typing import Any, Literal
 
+    from pydantic import GetCoreSchemaHandler
+    from pydantic_core import CoreSchema
     from typing_extensions import TypeIs
 
     from .result import Result
@@ -68,6 +70,32 @@ class Maybe(Generic[T]):
     This class is not useful for instantiation, instead use either
     :class:`Something` or :class:`Nothing`. This class is useful for isinstance
     """
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        from pydantic_core import core_schema
+
+        def unwrap_value(value: Any) -> Any:
+            if isinstance(value, Maybe):
+                return value.unwrap() if value.is_something() else None
+            return value
+
+        if issubclass(cls, Nothing):
+            schema = core_schema.no_info_after_validator_function(
+                lambda value: Nothing(), core_schema.none_schema()
+            )
+        else:
+            args = get_args(source_type)
+            value_schema = handler.generate_schema(args[0]) if args else core_schema.any_schema()
+            if issubclass(cls, Something):
+                schema = core_schema.no_info_after_validator_function(Something, value_schema)
+            else:
+                schema = core_schema.no_info_after_validator_function(
+                    maybe, core_schema.nullable_schema(value_schema)
+                )
+        return core_schema.no_info_before_validator_function(unwrap_value, schema)
 
     @staticmethod
     def is_something() -> bool:
@@ -443,6 +471,12 @@ class Something(Maybe[T]):
 
     _held: T
 
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        return super(Something, cls).__get_pydantic_core_schema__(source_type, handler)
+
     def __bool__(self) -> bool:
         return True
 
@@ -526,6 +560,12 @@ class Something(Maybe[T]):
 @dataclass(slots=True, frozen=True)
 class Nothing(Maybe[T]):
     """A Maybe that does not hold a value."""
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        return super(Nothing, cls).__get_pydantic_core_schema__(source_type, handler)
 
     def __bool__(self) -> bool:
         return False

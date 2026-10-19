@@ -13,7 +13,7 @@
 
 ## Code and Tests
 
-- Follow `.editorconfig`: use 4-space indentation by default and 2 spaces for YAML, TOML, and JSON; use UTF-8 with LF line endings, trim trailing whitespace, and end files with a newline.
+- Follow `.editorconfig`: use 4-space indentation by default and 2 spaces for YAML, TOML, and JSON; use UTF-8 with LF line endings, trim trailing whitespace, and end files with a newline. Do not use tabs for indentation
 - Follow Ruff's configured style: single-quoted strings and a 100-character line limit.
 - Keep type annotations compatible with the configured strict mypy checks. The package includes `py.typed`.
 - Put behavioral tests in the matching module under `tests/` (`test_maybe.py` or `test_result.py`). Use pytest and follow the existing nested test-class organization.
